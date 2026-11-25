@@ -1,0 +1,10 @@
+flowchart TD
+    RAW["131 Folder Arsip Fisik Pindaian (131 Permohonan)"] --> TRANS["Transkripsi Digital Faktual ke Excel Mentah"]
+    TRANS --> A1["Audit Missing Values: Label 'Tanpa Keterangan (Template RSUD)' (Anti-Fabrikasi)"]
+    TRANS --> A2["Koreksi Typo Slip F044: Verifikasi Faktual Lapor 2025-05-18 (Durasi 0 hr, LU)"]
+    TRANS --> A3["Koreksi Typo Slip F0124: Koreksi Lahir 2025-07-06 (Durasi 0 hr, LU)"]
+    A1 --> SYNC["Validasi Kohort Pelayanan: 100% Tahun Pelaporan 2025"]
+    A2 --> SYNC
+    A3 --> SYNC
+    SYNC --> PII["Kepatuhan UU No. 27/2022 PDP: Eliminasi NIK/Nama/Alamat, ID B_001..B_131"]
+    PII --> READY["Dataset Bersih Siap Mining (Excel + CSV) Tervalidasi Yuridis"]

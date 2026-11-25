@@ -1,0 +1,40 @@
+flowchart TD
+    subgraph DataPrep ["Tahap 1 & 2: Data Preparation"]
+        A["Data Mentah Transkripsi (Excel & CSV 131 Berkas)"] --> B["pembersihan_data_dan_validasi_kronologis.py"]
+        B --> C["Data_Bersih_Lengkap_Imputed.xlsx / .csv"]
+        B --> D["data_gabungan_transkripsi_final.json"]
+        C --> E["rekayasa_fitur_dan_reduksi_dimensi.py"]
+        E --> F["Dataset_Feature_Engineered_PD_NTN.xlsx / .csv"]
+        E --> G["Dataset_Agregasi_Spasial_16_Kecamatan.xlsx / .csv"]
+    end
+
+    subgraph Modeling ["Tahap 3 & 4: Modeling Spasial & Sosio-Ekonomi"]
+        G --> H["kmeans_model_spasial_wilayah.py"]
+        H --> I["Hasil_Clustering_Kecamatan_Natuna.xlsx / .csv"]
+        H --> J["peta_geospatial_klaster_natuna.png"]
+        H --> K["visualisasi_cluster_kecamatan.png"]
+        H --> L["evaluasi_elbow_silhouette.png"]
+        
+        F --> M["pemodelan_kmeans_sosioekonomi_dan_dashboard.py"]
+        M --> N["Hasil_Clustering_Sosial_Ekonomi.xlsx / .csv"]
+        M --> O["scatter_model_sosioekonomi_individu.png"]
+    end
+
+    subgraph EDA ["Tahap 5: Data Understanding"]
+        C & F --> P["analisis_eksplorasi_data_dan_kualitas_eda.py"]
+        P --> Q["8 Visualisasi EDA (300 DPI)"]
+    end
+
+    subgraph Deploy ["Tahap 6, 7 & 8: Deployment & Reporting"]
+        I & N --> R["generate_dashboard.py"]
+        R --> S["dashboard_interaktif_kmeans_dosen.html"]
+        
+        Q & J & O --> T["build_final_reports.py"]
+        T --> U["LAPORAN_AKHIR_PENAMBANGAN_DATA_PD_NTN25.docx"]
+        T --> V["FinPD_2401020121.pdf"]
+        
+        V --> W["paketkan_berkas_google_form.py"]
+        W --> X["Berkas Submisi 1, 2, 3 (.7z & PDF)"]
+    end
+
+    Z["jalankan_seluruh_tahapan_pipeline.py"] -.->|Mengeksekusi Otomatis 1 s.d. 8| DataPrep & Modeling & EDA & Deploy

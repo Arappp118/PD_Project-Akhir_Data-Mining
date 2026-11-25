@@ -1,0 +1,4 @@
+﻿Persentase_LU,Median_Durasi_Hari,Cluster,Cluster_Label
+13.758571428571429,482.57142857142844,0,Cluster 1 (Moderate)
+1.298571428571428,12532.571428571428,1,Cluster 2 (High-Delay)
+83.335,18.5,2,Cluster 0 (High-Compliance)

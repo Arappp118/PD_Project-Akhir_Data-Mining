@@ -1,0 +1,27 @@
+digraph CRISP_DM {
+    rankdir=TB;
+    fontname="Arial";
+    dpi=300;
+    node [shape=box, style="filled,rounded", fontname="Arial", fontsize=11, margin="0.25,0.18"];
+    edge [color="#2B6CB0", penwidth=2.0, arrowhead=vee];
+
+    subgraph cluster_main {
+        style="filled,rounded";
+        fillcolor="#F7FAFC";
+        color="#CBD5E0";
+        label="METODOLOGI SIKLUS HIDUP PENAMBANGAN DATA (CRISP-DM FRAMEWORK)";
+        fontname="Arial Bold";
+        fontsize=13;
+        fontcolor="#1A365D";
+
+        BU [label="1. Business Understanding\n• Identifikasi Kebutuhan Disdukcapil Natuna\n• Regulasi UU No. 24/2013 Batas 60 Hari LU vs LT\n• Tantangan Disparitas Wilayah Kepulauan 3T", fillcolor="#EBF8FF", color="#3182CE", fontcolor="#1A365D"];
+        DU [label="2. Data Understanding\n• Audit 131 Folder Arsip Fisik (262 Dokumen Pindaian)\n• Transkripsi 131 Berkas Pelaporan F-2.01 & SKL/SPTJM\n• Analisis Eksplorasi Data 8 Visualisasi EDA", fillcolor="#E6FFFA", color="#319795", fontcolor="#234E52"];
+        DP [label="3. Data Preparation\n• Protokol Bebas Fabrikasi (Zero Data Fabrication)\n• Koreksi Typo Kronologis F044 & F0124 ke Tahun 2025\n• Anonimisasi Atribut PII (UU No. 27/2022)\n• Rekayasa Fitur: Durasi Hari & Usia Ortu", fillcolor="#FAF5FF", color="#805AD5", fontcolor="#44337A"];
+        M  [label="4. Modeling (Algoritma K-Means)\n• Model 1: Spasial Wilayah (16 Kecamatan, K=3)\n• Model 2: Sosio-Ekonomi Pemohon Individu (K=3)\n• Standardisasi Z-Score & Jarak Euclidean", fillcolor="#FFFAF0", color="#DD6B20", fontcolor="#7B341E"];
+        E  [label="5. Evaluation (Validasi Metrik)\n• Metode Elbow (Inertia / WCSS)\n• Silhouette Score (Spasial: 0.6410, Sosio: 0.5533)\n• Davies-Bouldin Index (Spasial: 0.4698, Sosio: 0.5905)\n• Karakterisasi dan Profiling Klaster", fillcolor="#FFF5F5", color="#E53E3E", fontcolor="#742A2A"];
+        D  [label="6. Deployment (Penerapan Sistem)\n• Purwarupa Web Dashboard Leaflet.js & Plotly.js\n• Rekomendasi 1: Kapal Pelayanan Keliling (Mobile Boat)\n• Rekomendasi 2: Sidang Terpadu Verifikasi SPTJM Massal\n• Rekomendasi 3: Penguatan Integrasi Layanan Faskes", fillcolor="#F0FFF4", color="#38A169", fontcolor="#1C4532"];
+
+        BU -> DU -> DP -> M -> E -> D;
+        E -> M [style=dashed, color="#E53E3E", constraint=false, label="Iterasi Evaluasi", fontcolor="#E53E3E"];
+    }
+}

@@ -1,0 +1,7 @@
+flowchart TD
+    BU["1. Business Understanding<br>(Kebutuhan Disdukcapil Natuna & UU No. 24/2013)"] --> DU["2. Data Understanding<br>(Audit 131 Folder Fisik, 131 Permohonan, 8 Plot EDA)"]
+    DU --> DP["3. Data Preparation<br>(Zero Fabrication, Typo 2025, Anonimisasi PII, Fitur Durasi)"]
+    DP --> M["4. Modeling<br>(K-Means: Model Spasial 16 Kec & Sosio-Ekonomi Individu K=3)"]
+    M --> E["5. Evaluation<br>(Elbow/WCSS, Silhouette, Davies-Bouldin, Profiling)"]
+    E --> D["6. Deployment<br>(Dashboard Peta Leaflet & 3 Rekomendasi Kebijakan)"]
+    E -. Iterasi Evaluasi .-> M

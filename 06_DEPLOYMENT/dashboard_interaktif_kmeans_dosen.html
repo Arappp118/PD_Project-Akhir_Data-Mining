@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Geospasial & Penambangan Data K-Means - Disdukcapil Natuna</title>
+<!-- Leaflet CSS & JS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Plotly.js -->
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; background-color: #f0f3f7; color: #2c3e50; }
+  
+  .header { background: linear-gradient(135deg, #0d3b66, #1f618d); color: white; padding: 22px 25px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+  .header h1 { margin: 0 0 6px 0; font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }
+  .header p { margin: 0; opacity: 0.92; font-size: 13.5px; }
+  .badges-row { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .badge-tag { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11.5px; font-weight: 700; }
+  .bg-tag-red { background: #e74c3c; color: white; }
+  .bg-tag-blue { background: #2980b9; color: white; }
+  .bg-tag-green { background: #27ae60; color: white; }
+
+  .grid-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; margin-bottom: 20px; }
+  .stat-box { padding: 16px; border-radius: 10px; color: white; text-align: center; box-shadow: 0 3px 10px rgba(0,0,0,0.07); transition: transform 0.2s; }
+  .stat-box:hover { transform: translateY(-2px); }
+  .bg-navy { background: linear-gradient(135deg, #1f2d3d, #111a24); }
+  .bg-green { background: linear-gradient(135deg, #27ae60, #2ecc71); }
+  .bg-orange { background: linear-gradient(135deg, #d35400, #f39c12); }
+  .bg-red { background: linear-gradient(135deg, #c0392b, #e74c3c); }
+  .stat-box h3 { margin: 0; font-size: 24px; font-weight: bold; }
+  .stat-box p { margin: 4px 0 0 0; font-size: 12px; opacity: 0.95; }
+
+  .tab-container { background: white; border-radius: 12px; padding: 18px; box-shadow: 0 2px 12px rgba(0,0,0,0.05); }
+  .tab-nav { display: flex; gap: 10px; border-bottom: 2px solid #e9ecef; padding-bottom: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+  .tab-btn { padding: 10px 18px; border: none; background: #eef2f7; color: #495057; font-weight: 700; font-size: 13px; border-radius: 8px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 6px; }
+  .tab-btn:hover { background: #dfe5ec; }
+  .tab-btn.active { background: #1f618d; color: white; box-shadow: 0 3px 8px rgba(31,97,141,0.3); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* MAP STYLES */
+  #map { height: 620px; width: 100%; border-radius: 10px; border: 1px solid #dcdfe6; }
+  .map-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px; }
+  .filter-group { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: bold; }
+  .filter-select { padding: 6px 12px; border-radius: 6px; border: 1px solid #ced4da; font-size: 12.5px; }
+
+  /* SOSIO-EKONOMI DETAIL STYLES */
+  .detail-cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; margin-top: 20px; }
+  .cluster-card { border-radius: 10px; padding: 16px; border-top: 5px solid #ccc; background: #fafbfc; box-shadow: 0 2px 8px rgba(0,0,0,0.04); font-size: 12.8px; line-height: 1.5; }
+  .card-c0 { border-top-color: #27ae60; background: #f4fbf7; }
+  .card-c1 { border-top-color: #2980b9; background: #f4f8fb; }
+  .card-c2 { border-top-color: #c0392b; background: #fdf5f4; }
+  .cluster-card h4 { margin: 0 0 8px 0; font-size: 15px; font-weight: 700; }
+  .metric-pill { display: inline-block; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 11.5px; margin-bottom: 6px; }
+  .pill-green { background: #d4efdf; color: #196f3d; }
+  .pill-blue { background: #d4e6f1; color: #1a5276; }
+  .pill-red { background: #fadbd8; color: #922b21; }
+
+  #plotDiv { height: 620px; width: 100%; }
+
+  table.data-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 12.8px; }
+  table.data-table th, table.data-table td { border: 1px solid #e2e8f0; padding: 9px 12px; text-align: left; }
+  table.data-table th { background: #1f618d; color: white; font-weight: 600; }
+  table.data-table tr:nth-child(even) { background: #f8fafc; }
+  .badge-cluster { padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 11px; color: white; }
+  .bc-green { background: #27ae60; }
+  .bc-orange { background: #f39c12; }
+  .bc-red { background: #e74c3c; }
+  .bc-blue { background: #2980b9; }
+
+  .btn-toggle-img { padding: 6px 12px; background: #34495e; color: white; border: none; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: bold; }
+  .btn-toggle-img:hover { background: #2c3e50; }
+  .img-preview-box { text-align: center; margin-top: 15px; padding: 12px; background: #eaeded; border-radius: 8px; display: none; }
+  .img-preview-box img { max-width: 100%; border-radius: 6px; box-shadow: 0 3px 10px rgba(0,0,0,0.15); }
+
+  .footer { text-align: center; color: #7f8c8d; font-size: 12px; margin-top: 25px; line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Dashboard Geospasial & Penambangan Data K-Means Clustering</h1>
+  <p>Analisis Multidimensi Tingkat Keterlambatan Pencatatan Akta Kelahiran pada Dinas Kependudukan dan Pencatatan Sipil Kabupaten Natuna (Tahun Pelayanan 2025)</p>
+  <div class="badges-row">
+    <span class="badge-tag bg-tag-red">✓ Analisis Spasial: Peta Geospasial 16 Kecamatan (Esri Suite)</span>
+    <span class="badge-tag bg-tag-blue">✓ Model Sosio-Ekonomi: Centroid Bintang, Elips & Anotasi Bivariat</span>
+    <span class="badge-tag bg-tag-green">✓ Evaluasi Valid: Spasial Silh = 0.6377 & Individu Silh = 0.5524</span>
+  </div>
+</div>
+
+<div class="grid-stats">
+  <div class="stat-box bg-navy">
+    <h3>131 Berkas</h3>
+    <p>Total Berkas Pelayanan 2025</p>
+  </div>
+  <div class="stat-box bg-green">
+    <h3>Cluster 0 (Compliance)</h3>
+    <p>2 Kecamatan (B. Tengah, P. Laut)</p>
+  </div>
+  <div class="stat-box bg-orange">
+    <h3>Cluster 1 (Moderate)</h3>
+    <p>7 Kecamatan (B. Timur, Barat, dll)</p>
+  </div>
+  <div class="stat-box bg-red">
+    <h3>Cluster 2 (High-Delay)</h3>
+    <p>7 Kecamatan (Midai, Serasan, dll)</p>
+  </div>
+</div>
+
+<div class="tab-container">
+  <div class="tab-nav">
+    <button class="tab-btn active" onclick="openTab(event, 'tabMap')">🗺️ PETA GEOSPATIAL 16 KECAMATAN (LEAFLET)</button>
+    <button class="tab-btn" onclick="openTab(event, 'tabScatter')">📈 MODEL SOSIO-EKONOMI INDIVIDU (131 BERKAS)</button>
+    <button class="tab-btn" onclick="openTab(event, 'tabTable')">📋 TABEL DATA & AUDIT METRIK MODEL</button>
+  </div>
+
+  <!-- TAB 1: PETA GEOSPATIAL (LEAFLET ESRI SUITE 100% BEBAS WATERMARK & API KEY) -->
+  <div id="tabMap" class="tab-content active">
+    <div class="map-toolbar">
+      <div style="font-size: 13px; color: #2c3e50;">
+        <b>Peta Interaktif Kepulauan Natuna:</b> Menggunakan basemap <i>Esri World Street Map, Citra Satelit & Topografi</i> yang 100% bebas dari pembatasan akses lokal (403 block) dan tanpa memerlukan API Key (bebas watermark). Klik lingkaran kecamatan untuk melihat statistik lengkap.
+      </div>
+      <div class="filter-group">
+        <label for="filterClusterMap">Filter Klaster Peta:</label>
+        <select id="filterClusterMap" class="filter-select" onchange="filterMapMarkers(this.value)">
+          <option value="ALL">Semua Klaster (16 Kecamatan)</option>
+          <option value="Cluster 0 (High-Compliance)">🟢 Cluster 0: High-Compliance</option>
+          <option value="Cluster 1 (Moderate)">🟠 Cluster 1: Moderate</option>
+          <option value="Cluster 2 (High-Delay)">🔴 Cluster 2: High-Delay</option>
+        </select>
+        <button class="btn-toggle-img" onclick="toggleImg('boxPetaPng')">🖼️ Lihat Peta Cetak 300 DPI</button>
+      </div>
+    </div>
+
+    <div id="boxPetaPng" class="img-preview-box">
+      <p style="margin: 0 0 8px 0; font-weight: bold; font-size: 13px;">Peta Geospatial Resolusi Tinggi 300 DPI (Sesuai Naskah Laporan Akhir FinPD):</p>
+      <img src="peta_geospatial_klaster_natuna.png" alt="Peta Geospatial Klaster Natuna 300 DPI" />
+    </div>
+
+    <div id="map"></div>
+
+    <div style="margin-top: 12px; display: flex; gap: 15px; font-size: 12px; flex-wrap: wrap;">
+      <div><b>Legenda Warna:</b></div>
+      <div><span style="color: #27ae60; font-size: 15px;">●</span> <b>Cluster 0:</b> Tingkat Kepatuhan Tinggi (LU &gt; 65%, Median 1 hari)</div>
+      <div><span style="color: #f39c12; font-size: 15px;">●</span> <b>Cluster 1:</b> Kepatuhan Sedang (Median 148–636 hari / 1–2 tahun)</div>
+      <div><span style="color: #e74c3c; font-size: 15px;">●</span> <b>Cluster 2:</b> Keterlambatan Kronis/SPTJM (Median &gt; 7.800 hari / belasan tahun)</div>
+      <div style="margin-left: auto; color: #7f8c8d;">*Ukuran lingkaran proporsional terhadap volume berkas permohonan.</div>
+    </div>
+  </div>
+
+  <!-- TAB 2: SCATTER PLOT MODEL SOSIO-EKONOMI INDIVIDU -->
+  <div id="tabScatter" class="tab-content">
+    <div class="map-toolbar">
+      <div style="font-size: 13px; color: #2c3e50;">
+        <b>Model Sosio-Ekonomi Individu (131 Berkas):</b> Analisis bivariat Sumbu X (Hari Usia Orang Tua) vs Sumbu Y (Hari Keterlambatan Pelaporan). Dilengkapi <b>Centroid Bintang Kuning (⭐)</b>, <b>Garis Elips Klaster</b>, dan <b>Anotasi Penjelasan Karakteristik Profesi</b>.
+      </div>
+      <button class="btn-toggle-img" onclick="toggleImg('boxScatterPng')">🖼️ Lihat Grafik Klaster Sosio-Ekonomi (300 DPI)</button>
+    </div>
+
+    <div id="boxScatterPng" class="img-preview-box">
+      <p style="margin: 0 0 8px 0; font-weight: bold; font-size: 13px;">Grafik Klaster Sosio-Ekonomi Individu 300 DPI (Sumbu X vs Sumbu Y):</p>
+      <img src="scatter_model_sosioekonomi_individu.png" alt="Grafik Model Sosio-Ekonomi Individu" />
+    </div>
+
+    <div id="plotDiv"></div>
+
+    <!-- DETAIL KARTU SOSIO-EKONOMI PER KLASTER -->
+    <h3 style="margin: 25px 0 12px 0; font-size: 16px;">Detail Karakteristik Sosio-Ekonomi & Profil Yuridis Per Klaster</h3>
+    <div class="detail-cards-grid">
+      <!-- KLASTER 0 -->
+      <div class="cluster-card card-c0">
+        <h4>🟢 Klaster 0: Tepat Waktu & Balita Dini (Dominan Lahir Umum)</h4>
+        <div class="metric-pill pill-green">Ukuran: n = 56 Berkas (42.7%)</div>
+        <p><b>Profil Demografi Orang Tua:</b><br>
+        Rata-rata Usia Ortu: <b>27.3 Tahun</b> (9.983 Hari)<br>
+        Rentang Usia: 20.6 s.d. 32.6 Tahun (Usia biologis produktif awal).</p>
+        
+        <p><b>Karakteristik Keterlambatan:</b><br>
+        Median Keterlambatan: <b>82 Hari</b> (~0.2 Tahun / Rata-rata 2.4 Tahun). Memuat seluruh kelahiran baru tepat waktu (&le;60 hari).</p>
+
+        <p><b>Sosio-Ekonomi & Profesi Dominan:</b><br>
+        Didominasi wiraswasta muda, nelayan modern pulau utama, dan pedagang. Kesadaran administrasi tinggi sejak persalinan di faskes (RSUD / Polindes).</p>
+
+        <p><b>Instrumen Yuridis & Bukti:</b><br>
+        Mayoritas melampirkan Surat Keterangan Lahir (SKL) Medis dokter/bidan resmi tanpa memerlukan surat pernyataan SPTJM.</p>
+        
+        <p><b>Rekomendasi Kebijakan:</b><br>
+        Dipertahankan melalui pelayanan loket reguler dan integrasi pelaporan faskes rumah sakit/puskesmas.</p>
+      </div>
+
+      <!-- KLASTER 1 -->
+      <div class="cluster-card card-c1">
+        <h4>🔵 Klaster 1: Terlambat Sedang (Balita - Menjelang Sekolah)</h4>
+        <div class="metric-pill pill-blue">Ukuran: n = 40 Berkas (30.5%)</div>
+        <p><b>Profil Demografi Orang Tua:</b><br>
+        Rata-rata Usia Ortu: <b>38.6 Tahun</b> (14.082 Hari)<br>
+        Rentang Usia: 33.1 s.d. 47.6 Tahun (Keluarga matang/dewasa).</p>
+        
+        <p><b>Karakteristik Keterlambatan:</b><br>
+        Median Keterlambatan: <b>148 Hari</b> (~0.4 Tahun / Rata-rata 4.1 Tahun). Keterlambatan anak usia prasekolah menjelang jenjang PAUD/SD.</p>
+
+        <p><b>Sosio-Ekonomi & Profesi Dominan:</b><br>
+        Didominasi pegawai negeri (PNS), honorer daerah, prajurit TNI/Polri, dan petani kebun. Mengurus akta secara reaktif ketika anak dipersyaratkan masuk sekolah.</p>
+
+        <p><b>Instrumen Yuridis & Bukti:</b><br>
+        Kombinasi SKL faskes dan surat keterangan desa dengan kelengkapan buku nikah resmi orang tua.</p>
+
+        <p><b>Rekomendasi Kebijakan:</b><br>
+        Kerja sama lintas instansi dengan Dinas Pendidikan untuk integrasi pendaftaran PPDB berbasis akta lahir otomatis.</p>
+      </div>
+
+      <!-- KLASTER 2 -->
+      <div class="cluster-card card-c2">
+        <h4>🔴 Klaster 2: Terlambat Historis (Dewasa SPTJM)</h4>
+        <div class="metric-pill pill-red">Ukuran: n = 35 Berkas (26.7%)</div>
+        <p><b>Profil Demografi Orang Tua:</b><br>
+        Usia Ortu Saat Anak Lahir: <b>30.5 Tahun</b> (11.140 Hari)<br>
+        Usia Pemohon Saat Mengurus: <b>32 s.d. 85 Tahun</b> (Warga Dewasa s.d. Lansia).</p>
+        
+        <p><b>Karakteristik Keterlambatan:</b><br>
+        Median Keterlambatan: <b>17.991 Hari</b> (~49.3 Tahun), Rata-rata <b>17.775 Hari</b> (~48.7 Tahun). Rekor tertinggi mencapai 31.057 hari (~85 tahun).</p>
+
+        <p><b>Sosio-Ekonomi & Profesi Dominan:</b><br>
+        Penduduk asli pulau-pulau 3T (Midai, Suak Midai, Serasan, Subi, Pulau Tiga) berprofesi nelayan tradisional dan buruh lepas. Terkendala biaya transportasi kapal ke Ranai selama puluhan tahun.</p>
+
+        <p><b>Instrumen Yuridis & Bukti:</b><br>
+        100% menggunakan Surat Pernyataan Tanggung Jawab Mutlak (SPTJM Kebenaran Kelahiran) karena penolong lahir masa lampau (dukun beranak) telah wafat.</p>
+
+        <p><b>Rekomendasi Kebijakan:</b><br>
+        Intervensi darurat melalui <b>Kapal Pelayanan Keliling (Mobile Service Boat)</b> dan <b>Sidang Terpadu Isbat/SPTJM Massal</b> tingkat desa.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 3: TABEL -->
+  <div id="tabTable" class="tab-content">
+    <h3>Tabel Hasil Pengelompokkan 16 Kecamatan Kabupaten Natuna</h3>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Kecamatan</th>
+          <th>Klaster Spasial</th>
+          <th>Total Berkas</th>
+          <th>Rasio Lahir Umum (LU)</th>
+          <th>Median Keterlambatan</th>
+          <th>Rekomendasi Kebijakan Disdukcapil</th>
+        </tr>
+      </thead>
+      <tbody>
+        
+        <tr>
+          <td><b>BUNGURAN TIMUR</b></td>
+          <td><span class="badge-cluster bc-orange">Cluster 1 (Moderate)</span></td>
+          <td>70 berkas</td>
+          <td>35.7%</td>
+          <td>148 hari (0.4 thn)</td>
+          <td>Penguatan Sosialisasi Desa & Integrasi Puskesmas Pembantu (Pustu)</td>
+        </tr>
+        <tr>
+          <td><b>BUNGURAN BARAT</b></td>
+          <td><span class="badge-cluster bc-orange">Cluster 1 (Moderate)</span></td>
+          <td>11 berkas</td>
+          <td>27.3%</td>
+          <td>568 hari (1.6 thn)</td>
+          <td>Penguatan Sosialisasi Desa & Integrasi Puskesmas Pembantu (Pustu)</td>
+        </tr>
+        <tr>
+          <td><b>BUNGURAN SELATAN</b></td>
+          <td><span class="badge-cluster bc-orange">Cluster 1 (Moderate)</span></td>
+          <td>6 berkas</td>
+          <td>33.3%</td>
+          <td>636 hari (1.7 thn)</td>
+          <td>Penguatan Sosialisasi Desa & Integrasi Puskesmas Pembantu (Pustu)</td>
+        </tr>
+        <tr>
+          <td><b>BUNGURAN UTARA</b></td>
+          <td><span class="badge-cluster bc-orange">Cluster 1 (Moderate)</span></td>
+          <td>8 berkas</td>
+          <td>0.0%</td>
+          <td>447 hari (1.2 thn)</td>
+          <td>Penguatan Sosialisasi Desa & Integrasi Puskesmas Pembantu (Pustu)</td>
+        </tr>
+        <tr>
+          <td><b>BUNGURAN TENGAH</b></td>
+          <td><span class="badge-cluster bc-green">Cluster 0 (High-Compliance)</span></td>
+          <td>3 berkas</td>
+          <td>66.7%</td>
+          <td>36 hari (0.1 thn)</td>
+          <td>Layanan Loket Reguler & Percontohan Desa Tertib Adminduk</td>
+        </tr>
+        <tr>
+          <td><b>BUNGURAN BATUBI</b></td>
+          <td><span class="badge-cluster bc-orange">Cluster 1 (Moderate)</span></td>
+          <td>4 berkas</td>
+          <td>0.0%</td>
+          <td>292 hari (0.8 thn)</td>
+          <td>Penguatan Sosialisasi Desa & Integrasi Puskesmas Pembantu (Pustu)</td>
+        </tr>
+        <tr>
+          <td><b>BUNGURAN TIMUR LAUT</b></td>
+          <td><span class="badge-cluster bc-red">Cluster 2 (High-Delay)</span></td>
+          <td>11 berkas</td>
+          <td>9.1%</td>
+          <td>14768 hari (40.4 thn)</td>
+          <td>Prioritas Armada Mobile Service Boat & Pelayanan Sidang Terpadu SPTJM</td>
+        </tr>
+        <tr>
+          <td><b>PULAU LAUT</b></td>
+          <td><span class="badge-cluster bc-green">Cluster 0 (High-Compliance)</span></td>
+          <td>1 berkas</td>
+          <td>100.0%</td>
+          <td>1 hari (0.0 thn)</td>
+          <td>Layanan Loket Reguler & Percontohan Desa Tertib Adminduk</td>
+        </tr>
+        <tr>
+          <td><b>PULAU TIGA</b></td>
+          <td><span class="badge-cluster bc-red">Cluster 2 (High-Delay)</span></td>
+          <td>1 berkas</td>
+          <td>0.0%</td>
+          <td>14120 hari (38.7 thn)</td>
+          <td>Prioritas Armada Mobile Service Boat & Pelayanan Sidang Terpadu SPTJM</td>
+        </tr>
+        <tr>
+          <td><b>PULAU TIGA BARAT</b></td>
+          <td><span class="badge-cluster bc-red">Cluster 2 (High-Delay)</span></td>
+          <td>0 berkas <small style='color:#718096;'>(Pemekaran P. Tiga)</small></td>
+          <td>0.0%</td>
+          <td>12000 hari (32.9 thn)</td>
+          <td>Prioritas Armada Mobile Service Boat & Pelayanan Sidang Terpadu SPTJM</td>
+        </tr>
+        <tr>
+          <td><b>MIDAI</b></td>
+          <td><span class="badge-cluster bc-red">Cluster 2 (High-Delay)</span></td>
+          <td>3 berkas</td>
+          <td>0.0%</td>
+          <td>16635 hari (45.5 thn)</td>
+          <td>Prioritas Armada Mobile Service Boat & Pelayanan Sidang Terpadu SPTJM</td>
+        </tr>
+        <tr>
+          <td><b>SUAK MIDAI</b></td>
+          <td><span class="badge-cluster bc-red">Cluster 2 (High-Delay)</span></td>
+          <td>1 berkas</td>
+          <td>0.0%</td>
+          <td>11993 hari (32.8 thn)</td>
+          <td>Prioritas Armada Mobile Service Boat & Pelayanan Sidang Terpadu SPTJM</td>
+        </tr>
+        <tr>
+          <td><b>SERASAN</b></td>
+          <td><span class="badge-cluster bc-red">Cluster 2 (High-Delay)</span></td>
+          <td>3 berkas</td>
+          <td>0.0%</td>
+          <td>7888 hari (21.6 thn)</td>
+          <td>Prioritas Armada Mobile Service Boat & Pelayanan Sidang Terpadu SPTJM</td>
+        </tr>
+        <tr>
+          <td><b>SERASAN TIMUR</b></td>
+          <td><span class="badge-cluster bc-orange">Cluster 1 (Moderate)</span></td>
+          <td>5 berkas</td>
+          <td>0.0%</td>
+          <td>367 hari (1.0 thn)</td>
+          <td>Penguatan Sosialisasi Desa & Integrasi Puskesmas Pembantu (Pustu)</td>
+        </tr>
+        <tr>
+          <td><b>SUBI</b></td>
+          <td><span class="badge-cluster bc-orange">Cluster 1 (Moderate)</span></td>
+          <td>3 berkas</td>
+          <td>0.0%</td>
+          <td>920 hari (2.5 thn)</td>
+          <td>Penguatan Sosialisasi Desa & Integrasi Puskesmas Pembantu (Pustu)</td>
+        </tr>
+        <tr>
+          <td><b>PULAU PANJANG</b></td>
+          <td><span class="badge-cluster bc-red">Cluster 2 (High-Delay)</span></td>
+          <td>1 berkas</td>
+          <td>0.0%</td>
+          <td>10324 hari (28.3 thn)</td>
+          <td>Prioritas Armada Mobile Service Boat & Pelayanan Sidang Terpadu SPTJM</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3 style="margin-top: 30px;">Ringkasan Validasi Metrik Evaluasi Model K-Means</h3>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Model Data Mining</th>
+          <th>Entitas Data (N)</th>
+          <th>Fitur Masukan</th>
+          <th>Nilai K</th>
+          <th>Silhouette Score</th>
+          <th>Davies-Bouldin Index</th>
+          <th>Status Kelayakan</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><b>Model 1 (Spasial Wilayah 16 Kecamatan)</b></td>
+          <td>16 Kecamatan</td>
+          <td>Persentase LU, Median Durasi Hari</td>
+          <td>K = 3</td>
+          <td><b>0.6377</b></td>
+          <td><b>0.4710</b></td>
+          <td><span class="badge-cluster bc-green">Sangat Baik (Dense & Well-Separated)</span></td>
+        </tr>
+        <tr>
+          <td><b>Model 2 (Sosio-Ekonomi Pemohon Individu)</b></td>
+          <td>131 Berkas</td>
+          <td>Hari Usia Ortu (X), Durasi Keterlambatan (Y)</td>
+          <td>K = 3</td>
+          <td><b>0.5524</b></td>
+          <td><b>0.5924</b></td>
+          <td><span class="badge-cluster bc-green">Valid & Optimal (Dense & Well-Separated)</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="footer">
+  &copy; 2026 Tim Penambangan Data PD-NTN25 | Universitas Maritim Raja Ali Haji (UMRAH) Tanjungpinang<br>
+  Ketua Tim: Ridho Ramadani E (2401020121) | Narasumber Mitra: Ibu Julida, S.Sos (Disdukcapil Kabupaten Natuna)
+</div>
+
+<script>
+function openTab(evt, tabName) {
+  var i, tabcontent, tablinks;
+  tabcontent = document.getElementsByClassName("tab-content");
+  for (i = 0; i < tabcontent.length; i++) {
+    tabcontent[i].classList.remove("active");
+  }
+  tablinks = document.getElementsByClassName("tab-btn");
+  for (i = 0; i < tablinks.length; i++) {
+    tablinks[i].classList.remove("active");
+  }
+  document.getElementById(tabName).classList.add("active");
+  evt.currentTarget.classList.add("active");
+
+  if (tabName === 'tabMap') {
+    setTimeout(function() { map.invalidateSize(); }, 250);
+  }
+  if (tabName === 'tabScatter') {
+    setTimeout(function() { Plotly.Plots.resize('plotDiv'); }, 250);
+  }
+}
+
+function toggleImg(elemId) {
+  var el = document.getElementById(elemId);
+  if (el.style.display === "block") {
+    el.style.display = "none";
+  } else {
+    el.style.display = "block";
+  }
+}
+
+// ==============================================================================
+// 1. LEAFLET MAP INITIALIZATION (ESRI PROFESSIONAL BASEMAPS - 100% BEBAS WATERMARK & BEBAS API KEY)
+// ==============================================================================
+const map = L.map('map').setView([3.8, 108.4], 8);
+
+// Basemap 1: Esri World Street Map (Peta Administrasi & Wilayah Bebas Watermark / API Key)
+const esriStreet = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+  attribution: 'Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ, USGS, Intermap, iPC, TomTom | Disdukcapil Natuna',
+  maxZoom: 18
+}).addTo(map);
+
+// Basemap 2: Esri World Imagery (Citra Satelit Asli Kepulauan Maritim)
+const esriSat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+  attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+  maxZoom: 18
+});
+
+// Basemap 3: Esri World Topographic (Topografi & Kontur Wilayah)
+const esriTopo = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+  attribution: 'Tiles &copy; Esri &mdash; Source: USGS, Esri, TANA, DeLorme, NAVTEQ',
+  maxZoom: 18
+});
+
+// Basemap 4: Esri Ocean Basemap (Batimetri Kelautan & Kepulauan Maritim 3T)
+const esriOcean = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}', {
+  attribution: 'Tiles &copy; Esri &mdash; Source: GEBCO, NOAA, CHS, OSU, UNH, CSUMB, National Geographic, DeLorme, NAVTEQ, and Esri',
+  maxZoom: 13
+});
+
+L.control.layers({
+  "Peta Wilayah & Jalan (Esri Street Map)": esriStreet,
+  "Citra Satelit Maritim (Esri Satellite)": esriSat,
+  "Peta Topografi & Kontur (Esri Topo)": esriTopo,
+  "Batimetri Kelautan (Esri Ocean)": esriOcean
+}).addTo(map);
+
+const spasialData = [{"kecamatan": "BUNGURAN TIMUR", "lat": 3.9463, "lon": 108.3846, "cluster": 0, "cluster_label": "Cluster 1 (Moderate)", "total_berkas": 70, "persentase_lu": 35.71, "median_durasi": 148.5, "mean_durasi": 4031.47}, {"kecamatan": "BUNGURAN BARAT", "lat": 3.8167, "lon": 108.1333, "cluster": 0, "cluster_label": "Cluster 1 (Moderate)", "total_berkas": 11, "persentase_lu": 27.27, "median_durasi": 568.0, "mean_durasi": 5571.27}, {"kecamatan": "BUNGURAN SELATAN", "lat": 3.7667, "lon": 108.35, "cluster": 0, "cluster_label": "Cluster 1 (Moderate)", "total_berkas": 6, "persentase_lu": 33.33, "median_durasi": 635.5, "mean_durasi": 7512.67}, {"kecamatan": "BUNGURAN UTARA", "lat": 4.1667, "lon": 108.1833, "cluster": 0, "cluster_label": "Cluster 1 (Moderate)", "total_berkas": 8, "persentase_lu": 0.0, "median_durasi": 447.0, "mean_durasi": 7048.62}, {"kecamatan": "BUNGURAN TENGAH", "lat": 3.9, "lon": 108.3, "cluster": 2, "cluster_label": "Cluster 0 (High-Compliance)", "total_berkas": 3, "persentase_lu": 66.67, "median_durasi": 36.0, "mean_durasi": 149.33}, {"kecamatan": "BUNGURAN BATUBI", "lat": 3.9833, "lon": 108.1667, "cluster": 0, "cluster_label": "Cluster 1 (Moderate)", "total_berkas": 4, "persentase_lu": 0.0, "median_durasi": 292.0, "mean_durasi": 6421.75}, {"kecamatan": "BUNGURAN TIMUR LAUT", "lat": 4.0667, "lon": 108.35, "cluster": 1, "cluster_label": "Cluster 2 (High-Delay)", "total_berkas": 11, "persentase_lu": 9.09, "median_durasi": 14768.0, "mean_durasi": 12114.09}, {"kecamatan": "PULAU LAUT", "lat": 4.7333, "lon": 107.9833, "cluster": 2, "cluster_label": "Cluster 0 (High-Compliance)", "total_berkas": 1, "persentase_lu": 100.0, "median_durasi": 1.0, "mean_durasi": 1.0}, {"kecamatan": "PULAU TIGA", "lat": 3.6333, "lon": 108.0667, "cluster": 1, "cluster_label": "Cluster 2 (High-Delay)", "total_berkas": 1, "persentase_lu": 0.0, "median_durasi": 14120.0, "mean_durasi": 14120.0}, {"kecamatan": "PULAU TIGA BARAT", "lat": 3.6, "lon": 108.0167, "cluster": 1, "cluster_label": "Cluster 2 (High-Delay)", "total_berkas": 0, "persentase_lu": 0.0, "median_durasi": 12000.0, "mean_durasi": 12000.0}, {"kecamatan": "MIDAI", "lat": 3.0, "lon": 107.7833, "cluster": 1, "cluster_label": "Cluster 2 (High-Delay)", "total_berkas": 3, "persentase_lu": 0.0, "median_durasi": 16635.0, "mean_durasi": 17235.67}, {"kecamatan": "SUAK MIDAI", "lat": 3.0333, "lon": 107.75, "cluster": 1, "cluster_label": "Cluster 2 (High-Delay)", "total_berkas": 1, "persentase_lu": 0.0, "median_durasi": 11993.0, "mean_durasi": 11993.0}, {"kecamatan": "SERASAN", "lat": 2.5, "lon": 109.0167, "cluster": 1, "cluster_label": "Cluster 2 (High-Delay)", "total_berkas": 3, "persentase_lu": 0.0, "median_durasi": 7888.0, "mean_durasi": 11269.33}, {"kecamatan": "SERASAN TIMUR", "lat": 2.4833, "lon": 109.1167, "cluster": 0, "cluster_label": "Cluster 1 (Moderate)", "total_berkas": 5, "persentase_lu": 0.0, "median_durasi": 367.0, "mean_durasi": 366.0}, {"kecamatan": "SUBI", "lat": 3.15, "lon": 108.8333, "cluster": 0, "cluster_label": "Cluster 1 (Moderate)", "total_berkas": 3, "persentase_lu": 0.0, "median_durasi": 920.0, "mean_durasi": 1074.0}, {"kecamatan": "PULAU PANJANG", "lat": 3.2167, "lon": 108.7167, "cluster": 1, "cluster_label": "Cluster 2 (High-Delay)", "total_berkas": 1, "persentase_lu": 0.0, "median_durasi": 10324.0, "mean_durasi": 10324.0}];
+let markerLayerGroup = L.layerGroup().addTo(map);
+
+function renderMarkers(dataToShow) {
+  markerLayerGroup.clearLayers();
+  dataToShow.forEach(d => {
+    let color = '#27ae60';
+    if (d.cluster_label.includes('Moderate')) color = '#f39c12';
+    if (d.cluster_label.includes('High-Delay')) color = '#e74c3c';
+
+    let radius = Math.max(12, Math.min(32, d.total_berkas * 1.5 + 10));
+
+    const circle = L.circleMarker([d.lat, d.lon], {
+      color: '#1a202c',
+      weight: 1.5,
+      fillColor: color,
+      fillOpacity: 0.88,
+      radius: radius
+    });
+
+    const popupContent = `
+      <div style="font-size: 13px; line-height: 1.45; min-width: 200px;">
+        <h4 style="margin: 0 0 5px 0; color: #1a365d; border-bottom: 2px solid ${color}; padding-bottom: 3px;">${d.kecamatan}</h4>
+        <b>Klaster:</b> <span style="color: ${color}; font-weight: bold;">${d.cluster_label}</span><br>
+        <b>Total Berkas:</b> ${d.total_berkas > 0 ? d.total_berkas + ' permohonan' : '0 permohonan (Kecamatan Pemekaran)'}<br>
+        <b>Lahir Tepat Waktu (LU):</b> ${d.persentase_lu.toFixed(1)}%<br>
+        <b>Median Keterlambatan:</b> ${d.median_durasi.toFixed(0)} hari (${(d.median_durasi/365.25).toFixed(1)} tahun)<br>
+        <hr style="margin: 6px 0;">
+        <small><b>Rekomendasi Disdukcapil:</b><br>${d.cluster_label.includes('High-Delay') ? '🚢 Prioritas Kapal Pelayanan Keliling & Verifikasi SPTJM' : '🏛️ Pelayanan Loket Terpadu Reguler'}</small>
+      </div>
+    `;
+    circle.bindPopup(popupContent);
+    markerLayerGroup.addLayer(circle);
+  });
+}
+
+renderMarkers(spasialData);
+
+function filterMapMarkers(clusterChoice) {
+  if (clusterChoice === 'ALL') {
+    renderMarkers(spasialData);
+  } else {
+    const filtered = spasialData.filter(d => d.cluster_label === clusterChoice);
+    renderMarkers(filtered);
+  }
+}
+
+// ==============================================================================
+// 2. PLOTLY SCATTER PLOT INITIALIZATION (MODEL SOSIO-EKONOMI INDIVIDU)
+// ==============================================================================
+const dataRaw = [{"No_Berkas": "B_001", "Kecamatan": "BUNGURAN TIMUR LAUT", "Desa_Kelurahan": "KELANGA", "Hari_Usia_Ortu": 11398, "Usia_Rata_Ortu_Tahun": 31.2, "Durasi_Pelaporan_Hari": 33, "Status_Kepatuhan": "LU", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_002", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "BANDARSYAH", "Hari_Usia_Ortu": 8656, "Usia_Rata_Ortu_Tahun": 23.7, "Durasi_Pelaporan_Hari": 0, "Status_Kepatuhan": "LU", "Pekerjaan_Ayah": "SWASTA", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_003", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "BATU HITAM", "Hari_Usia_Ortu": 10220, "Usia_Rata_Ortu_Tahun": 28.0, "Durasi_Pelaporan_Hari": 0, "Status_Kepatuhan": "LU", "Pekerjaan_Ayah": "WIRASWASTA", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_004", "Kecamatan": "BUNGURAN TENGAH", "Desa_Kelurahan": "AIR LENGIT", "Hari_Usia_Ortu": 10220, "Usia_Rata_Ortu_Tahun": 28.0, "Durasi_Pelaporan_Hari": 36, "Status_Kepatuhan": "LU", "Pekerjaan_Ayah": "WIRASWASTA", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_005", "Kecamatan": "BUNGURAN SELATAN", "Desa_Kelurahan": "CEMAGA", "Hari_Usia_Ortu": 8354, "Usia_Rata_Ortu_Tahun": 22.9, "Durasi_Pelaporan_Hari": 17, "Status_Kepatuhan": "LU", "Pekerjaan_Ayah": "NELAYAN", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_006", "Kecamatan": "BUNGURAN SELATAN", "Desa_Kelurahan": "SELEMUT", "Hari_Usia_Ortu": 11372, "Usia_Rata_Ortu_Tahun": 31.1, "Durasi_Pelaporan_Hari": 21, "Status_Kepatuhan": "LU", "Pekerjaan_Ayah": "PETANI", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_007", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "RANAI KOTA", "Hari_Usia_Ortu": 14312, "Usia_Rata_Ortu_Tahun": 39.2, "Durasi_Pelaporan_Hari": 1, "Status_Kepatuhan": "LU", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 1, "Cluster_Label": "Klaster 1: Terlambat Sedang (Balita-Anak)"}, {"No_Berkas": "B_008", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "BANDARSYAH", "Hari_Usia_Ortu": 8180, "Usia_Rata_Ortu_Tahun": 22.4, "Durasi_Pelaporan_Hari": 6, "Status_Kepatuhan": "LU", "Pekerjaan_Ayah": "TNI", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_009", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "BANDARSYAH", "Hari_Usia_Ortu": 17242, "Usia_Rata_Ortu_Tahun": 47.2, "Durasi_Pelaporan_Hari": 3, "Status_Kepatuhan": "LU", "Pekerjaan_Ayah": "BURUH", "Cluster": 1, "Cluster_Label": "Klaster 1: Terlambat Sedang (Balita-Anak)"}, {"No_Berkas": "B_010", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "RANAI KOTA", "Hari_Usia_Ortu": 11190, "Usia_Rata_Ortu_Tahun": 30.6, "Durasi_Pelaporan_Hari": 23, "Status_Kepatuhan": "LU", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_011", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "SEPEMPANG", "Hari_Usia_Ortu": 8801, "Usia_Rata_Ortu_Tahun": 24.1, "Durasi_Pelaporan_Hari": 14, "Status_Kepatuhan": "LU", "Pekerjaan_Ayah": "NELAYAN", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_012", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "RANAI KOTA", "Hari_Usia_Ortu": 9688, "Usia_Rata_Ortu_Tahun": 26.5, "Durasi_Pelaporan_Hari": 6, "Status_Kepatuhan": "LU", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_013", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "RANAI KOTA", "Hari_Usia_Ortu": 10033, "Usia_Rata_Ortu_Tahun": 27.5, "Durasi_Pelaporan_Hari": 22, "Status_Kepatuhan": "LU", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_014", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "RANAI KOTA", "Hari_Usia_Ortu": 13394, "Usia_Rata_Ortu_Tahun": 36.7, "Durasi_Pelaporan_Hari": 2, "Status_Kepatuhan": "LU", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 1, "Cluster_Label": "Klaster 1: Terlambat Sedang (Balita-Anak)"}, {"No_Berkas": "B_015", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "RANAI KOTA", "Hari_Usia_Ortu": 14245, "Usia_Rata_Ortu_Tahun": 39.0, "Durasi_Pelaporan_Hari": 12, "Status_Kepatuhan": "LU", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 1, "Cluster_Label": "Klaster 1: Terlambat Sedang (Balita-Anak)"}, {"No_Berkas": "B_016", "Kecamatan": "BUNGURAN BARAT", "Desa_Kelurahan": "SEDANAU", "Hari_Usia_Ortu": 15864, "Usia_Rata_Ortu_Tahun": 43.4, "Durasi_Pelaporan_Hari": 40, "Status_Kepatuhan": "LU", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 1, "Cluster_Label": "Klaster 1: Terlambat Sedang (Balita-Anak)"}, {"No_Berkas": "B_017", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "RANAI KOTA", "Hari_Usia_Ortu": 13678, "Usia_Rata_Ortu_Tahun": 37.4, "Durasi_Pelaporan_Hari": 13, "Status_Kepatuhan": "LU", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 1, "Cluster_Label": "Klaster 1: Terlambat Sedang (Balita-Anak)"}, {"No_Berkas": "B_018", "Kecamatan": "BUNGURAN BARAT", "Desa_Kelurahan": "RANAI", "Hari_Usia_Ortu": 8474, "Usia_Rata_Ortu_Tahun": 23.2, "Durasi_Pelaporan_Hari": 30, "Status_Kepatuhan": "LU", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_019", "Kecamatan": "BUNGURAN BARAT", "Desa_Kelurahan": "SEDANAU", "Hari_Usia_Ortu": 10838, "Usia_Rata_Ortu_Tahun": 29.7, "Durasi_Pelaporan_Hari": 25, "Status_Kepatuhan": "LU", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_020", "Kecamatan": "BUNGURAN UTARA", "Desa_Kelurahan": "KELARIK", "Hari_Usia_Ortu": 11798, "Usia_Rata_Ortu_Tahun": 32.3, "Durasi_Pelaporan_Hari": 116, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_021", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "RANAI KOTA", "Hari_Usia_Ortu": 13299, "Usia_Rata_Ortu_Tahun": 36.4, "Durasi_Pelaporan_Hari": 164, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 1, "Cluster_Label": "Klaster 1: Terlambat Sedang (Balita-Anak)"}, {"No_Berkas": "B_022", "Kecamatan": "BUNGURAN TIMUR LAUT", "Desa_Kelurahan": "CERUK", "Hari_Usia_Ortu": 10532, "Usia_Rata_Ortu_Tahun": 28.8, "Durasi_Pelaporan_Hari": 16327, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 0, "Cluster_Label": "Klaster 2: Terlambat Historis (Dewasa SPTJM)"}, {"No_Berkas": "B_023", "Kecamatan": "BUNGURAN BARAT", "Desa_Kelurahan": "MEKAR JAYA", "Hari_Usia_Ortu": 12092, "Usia_Rata_Ortu_Tahun": 33.1, "Durasi_Pelaporan_Hari": 4223, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 1, "Cluster_Label": "Klaster 1: Terlambat Sedang (Balita-Anak)"}, {"No_Berkas": "B_024", "Kecamatan": "BUNGURAN TIMUR LAUT", "Desa_Kelurahan": "CERUK", "Hari_Usia_Ortu": 11437, "Usia_Rata_Ortu_Tahun": 31.3, "Durasi_Pelaporan_Hari": 20833, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 0, "Cluster_Label": "Klaster 2: Terlambat Historis (Dewasa SPTJM)"}, {"No_Berkas": "B_025", "Kecamatan": "BUNGURAN UTARA", "Desa_Kelurahan": "TELUK BUTON", "Hari_Usia_Ortu": 10278, "Usia_Rata_Ortu_Tahun": 28.1, "Durasi_Pelaporan_Hari": 74, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "NELAYAN", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_026", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "RANAI KOTA", "Hari_Usia_Ortu": 10754, "Usia_Rata_Ortu_Tahun": 29.4, "Durasi_Pelaporan_Hari": 87, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_027", "Kecamatan": "BUNGURAN BARAT", "Desa_Kelurahan": "MEKAR JAYA", "Hari_Usia_Ortu": 13669, "Usia_Rata_Ortu_Tahun": 37.4, "Durasi_Pelaporan_Hari": 568, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 1, "Cluster_Label": "Klaster 1: Terlambat Sedang (Balita-Anak)"}, {"No_Berkas": "B_028", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "TELUK BARUK", "Hari_Usia_Ortu": 12222, "Usia_Rata_Ortu_Tahun": 33.5, "Durasi_Pelaporan_Hari": 7251, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "NELAYAN", "Cluster": 1, "Cluster_Label": "Klaster 1: Terlambat Sedang (Balita-Anak)"}, {"No_Berkas": "B_029", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "TELUK BARUK", "Hari_Usia_Ortu": 13469, "Usia_Rata_Ortu_Tahun": 36.9, "Durasi_Pelaporan_Hari": 6007, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "NELAYAN", "Cluster": 1, "Cluster_Label": "Klaster 1: Terlambat Sedang (Balita-Anak)"}, {"No_Berkas": "B_030", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "TELUK BARUK", "Hari_Usia_Ortu": 8882, "Usia_Rata_Ortu_Tahun": 24.3, "Durasi_Pelaporan_Hari": 10625, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "NELAYAN", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_031", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "RANAI KOTA", "Hari_Usia_Ortu": 13188, "Usia_Rata_Ortu_Tahun": 36.1, "Durasi_Pelaporan_Hari": 367, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "HONORER", "Cluster": 1, "Cluster_Label": "Klaster 1: Terlambat Sedang (Balita-Anak)"}, {"No_Berkas": "B_032", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "RANAI", "Hari_Usia_Ortu": 10142, "Usia_Rata_Ortu_Tahun": 27.8, "Durasi_Pelaporan_Hari": 368, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_033", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "TELUK BARUK", "Hari_Usia_Ortu": 11182, "Usia_Rata_Ortu_Tahun": 30.6, "Durasi_Pelaporan_Hari": 8420, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "NELAYAN", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_034", "Kecamatan": "SERASAN", "Desa_Kelurahan": "TANJUNG BALAW", "Hari_Usia_Ortu": 10038, "Usia_Rata_Ortu_Tahun": 27.5, "Durasi_Pelaporan_Hari": 7888, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_035", "Kecamatan": "PULAU TIGA", "Desa_Kelurahan": "TANJUNG KUMBIK", "Hari_Usia_Ortu": 9014, "Usia_Rata_Ortu_Tahun": 24.7, "Durasi_Pelaporan_Hari": 14120, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 0, "Cluster_Label": "Klaster 2: Terlambat Historis (Dewasa SPTJM)"}, {"No_Berkas": "B_036", "Kecamatan": "BUNGURAN BATUBI", "Desa_Kelurahan": "SELUBUK", "Hari_Usia_Ortu": 10399, "Usia_Rata_Ortu_Tahun": 28.5, "Durasi_Pelaporan_Hari": 191, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "NELAYAN/PERIKANAN", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_037", "Kecamatan": "BUNGURAN BARAT", "Desa_Kelurahan": "SEDANAU", "Hari_Usia_Ortu": 11437, "Usia_Rata_Ortu_Tahun": 31.3, "Durasi_Pelaporan_Hari": 18522, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 0, "Cluster_Label": "Klaster 2: Terlambat Historis (Dewasa SPTJM)"}, {"No_Berkas": "B_038", "Kecamatan": "BUNGURAN SELATAN", "Desa_Kelurahan": "PIAN PADANG", "Hari_Usia_Ortu": 13246, "Usia_Rata_Ortu_Tahun": 36.3, "Durasi_Pelaporan_Hari": 12710, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 0, "Cluster_Label": "Klaster 2: Terlambat Historis (Dewasa SPTJM)"}, {"No_Berkas": "B_039", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "RANAI KOTA", "Hari_Usia_Ortu": 9392, "Usia_Rata_Ortu_Tahun": 25.7, "Durasi_Pelaporan_Hari": 257, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_040", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "RANAI KOTA", "Hari_Usia_Ortu": 16616, "Usia_Rata_Ortu_Tahun": 45.5, "Durasi_Pelaporan_Hari": 159, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 1, "Cluster_Label": "Klaster 1: Terlambat Sedang (Balita-Anak)"}, {"No_Berkas": "B_041", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "RANAI KOTA", "Hari_Usia_Ortu": 10549, "Usia_Rata_Ortu_Tahun": 28.9, "Durasi_Pelaporan_Hari": 91, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_042", "Kecamatan": "BUNGURAN BARAT", "Desa_Kelurahan": "SEDANAU", "Hari_Usia_Ortu": 9650, "Usia_Rata_Ortu_Tahun": 26.4, "Durasi_Pelaporan_Hari": 20647, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 0, "Cluster_Label": "Klaster 2: Terlambat Historis (Dewasa SPTJM)"}, {"No_Berkas": "B_043", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "BANDARSYAH", "Hari_Usia_Ortu": 11550, "Usia_Rata_Ortu_Tahun": 31.6, "Durasi_Pelaporan_Hari": 11921, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 0, "Cluster_Label": "Klaster 2: Terlambat Historis (Dewasa SPTJM)"}, {"No_Berkas": "B_044", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "RANAI KOTA", "Hari_Usia_Ortu": 13864, "Usia_Rata_Ortu_Tahun": 38.0, "Durasi_Pelaporan_Hari": 138, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 1, "Cluster_Label": "Klaster 1: Terlambat Sedang (Balita-Anak)"}, {"No_Berkas": "B_045", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "RANAI DARAT", "Hari_Usia_Ortu": 11437, "Usia_Rata_Ortu_Tahun": 31.3, "Durasi_Pelaporan_Hari": 18022, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 0, "Cluster_Label": "Klaster 2: Terlambat Historis (Dewasa SPTJM)"}, {"No_Berkas": "B_046", "Kecamatan": "SUAK MIDAI", "Desa_Kelurahan": "BATU BELANAK", "Hari_Usia_Ortu": 10070, "Usia_Rata_Ortu_Tahun": 27.6, "Durasi_Pelaporan_Hari": 11993, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 0, "Cluster_Label": "Klaster 2: Terlambat Historis (Dewasa SPTJM)"}, {"No_Berkas": "B_047", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "BATU HITAM", "Hari_Usia_Ortu": 16315, "Usia_Rata_Ortu_Tahun": 44.7, "Durasi_Pelaporan_Hari": 70, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "PNS", "Cluster": 1, "Cluster_Label": "Klaster 1: Terlambat Sedang (Balita-Anak)"}, {"No_Berkas": "B_048", "Kecamatan": "SERASAN", "Desa_Kelurahan": "BATU BERIAN", "Hari_Usia_Ortu": 11437, "Usia_Rata_Ortu_Tahun": 31.3, "Durasi_Pelaporan_Hari": 25027, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 0, "Cluster_Label": "Klaster 2: Terlambat Historis (Dewasa SPTJM)"}, {"No_Berkas": "B_049", "Kecamatan": "BUNGURAN SELATAN", "Desa_Kelurahan": "PIAN PADANG", "Hari_Usia_Ortu": 11437, "Usia_Rata_Ortu_Tahun": 31.3, "Durasi_Pelaporan_Hari": 31057, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 0, "Cluster_Label": "Klaster 2: Terlambat Historis (Dewasa SPTJM)"}, {"No_Berkas": "B_050", "Kecamatan": "BUNGURAN BARAT", "Desa_Kelurahan": "SEDANAU", "Hari_Usia_Ortu": 10868, "Usia_Rata_Ortu_Tahun": 29.8, "Durasi_Pelaporan_Hari": 73, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "KARYAWAN HONORER", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_051", "Kecamatan": "BUNGURAN TIMUR LAUT", "Desa_Kelurahan": "TANJUNG", "Hari_Usia_Ortu": 11437, "Usia_Rata_Ortu_Tahun": 31.3, "Durasi_Pelaporan_Hari": 18764, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 0, "Cluster_Label": "Klaster 2: Terlambat Historis (Dewasa SPTJM)"}, {"No_Berkas": "B_052", "Kecamatan": "BUNGURAN UTARA", "Desa_Kelurahan": "KELARIK", "Hari_Usia_Ortu": 14950, "Usia_Rata_Ortu_Tahun": 40.9, "Durasi_Pelaporan_Hari": 422, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "NELAYAN", "Cluster": 1, "Cluster_Label": "Klaster 1: Terlambat Sedang (Balita-Anak)"}, {"No_Berkas": "B_053", "Kecamatan": "BUNGURAN TENGAH", "Desa_Kelurahan": "AIR LENGIT", "Hari_Usia_Ortu": 14442, "Usia_Rata_Ortu_Tahun": 39.5, "Durasi_Pelaporan_Hari": 411, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "WIRASWASTA", "Cluster": 1, "Cluster_Label": "Klaster 1: Terlambat Sedang (Balita-Anak)"}, {"No_Berkas": "B_054", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "RANAI DARAT", "Hari_Usia_Ortu": 11675, "Usia_Rata_Ortu_Tahun": 32.0, "Durasi_Pelaporan_Hari": 77, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "BURUH", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_055", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "BANDARSYAH", "Hari_Usia_Ortu": 11746, "Usia_Rata_Ortu_Tahun": 32.2, "Durasi_Pelaporan_Hari": 12917, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "PETANI", "Cluster": 0, "Cluster_Label": "Klaster 2: Terlambat Historis (Dewasa SPTJM)"}, {"No_Berkas": "B_056", "Kecamatan": "BUNGURAN TIMUR LAUT", "Desa_Kelurahan": "SELEMAM", "Hari_Usia_Ortu": 13658, "Usia_Rata_Ortu_Tahun": 37.4, "Durasi_Pelaporan_Hari": 11382, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "PETANI", "Cluster": 1, "Cluster_Label": "Klaster 1: Terlambat Sedang (Balita-Anak)"}, {"No_Berkas": "B_057", "Kecamatan": "BUNGURAN TIMUR LAUT", "Desa_Kelurahan": "BATU BAYAN", "Hari_Usia_Ortu": 11437, "Usia_Rata_Ortu_Tahun": 31.3, "Durasi_Pelaporan_Hari": 15211, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 0, "Cluster_Label": "Klaster 2: Terlambat Historis (Dewasa SPTJM)"}, {"No_Berkas": "B_058", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "BATU GAJAH", "Hari_Usia_Ortu": 10778, "Usia_Rata_Ortu_Tahun": 29.5, "Durasi_Pelaporan_Hari": 255, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "WIRASWASTA", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_059", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "BANDARSYAH", "Hari_Usia_Ortu": 11321, "Usia_Rata_Ortu_Tahun": 31.0, "Durasi_Pelaporan_Hari": 12698, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "NELAYAN", "Cluster": 0, "Cluster_Label": "Klaster 2: Terlambat Historis (Dewasa SPTJM)"}, {"No_Berkas": "B_060", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "BANDARSYAH", "Hari_Usia_Ortu": 11437, "Usia_Rata_Ortu_Tahun": 31.3, "Durasi_Pelaporan_Hari": 22790, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 0, "Cluster_Label": "Klaster 2: Terlambat Historis (Dewasa SPTJM)"}, {"No_Berkas": "B_061", "Kecamatan": "BUNGURAN TIMUR LAUT", "Desa_Kelurahan": "LIMAU MANIS", "Hari_Usia_Ortu": 11483, "Usia_Rata_Ortu_Tahun": 31.4, "Durasi_Pelaporan_Hari": 14064, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "KARYAWAN SWASTA", "Cluster": 0, "Cluster_Label": "Klaster 2: Terlambat Historis (Dewasa SPTJM)"}, {"No_Berkas": "B_062", "Kecamatan": "BUNGURAN BATUBI", "Desa_Kelurahan": "GUNUNG PUTRI", "Hari_Usia_Ortu": 9940, "Usia_Rata_Ortu_Tahun": 27.2, "Durasi_Pelaporan_Hari": 68, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "WIRASWASTA", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_063", "Kecamatan": "MIDAI", "Desa_Kelurahan": "GUNUNG JAMBAT", "Hari_Usia_Ortu": 12084, "Usia_Rata_Ortu_Tahun": 33.1, "Durasi_Pelaporan_Hari": 12940, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "PETANI", "Cluster": 0, "Cluster_Label": "Klaster 2: Terlambat Historis (Dewasa SPTJM)"}, {"No_Berkas": "B_064", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "RANAI", "Hari_Usia_Ortu": 11437, "Usia_Rata_Ortu_Tahun": 31.3, "Durasi_Pelaporan_Hari": 21955, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 0, "Cluster_Label": "Klaster 2: Terlambat Historis (Dewasa SPTJM)"}, {"No_Berkas": "B_065", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "BANDARSYAH", "Hari_Usia_Ortu": 11437, "Usia_Rata_Ortu_Tahun": 31.3, "Durasi_Pelaporan_Hari": 14127, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 0, "Cluster_Label": "Klaster 2: Terlambat Historis (Dewasa SPTJM)"}, {"No_Berkas": "B_066", "Kecamatan": "BUNGURAN SELATAN", "Desa_Kelurahan": "CEMAGA UTARA", "Hari_Usia_Ortu": 10922, "Usia_Rata_Ortu_Tahun": 29.9, "Durasi_Pelaporan_Hari": 365, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "KARYAWAN SWASTA", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_067", "Kecamatan": "BUNGURAN UTARA", "Desa_Kelurahan": "KELARIK BARAT", "Hari_Usia_Ortu": 10785, "Usia_Rata_Ortu_Tahun": 29.5, "Durasi_Pelaporan_Hari": 472, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "PETANI", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_068", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "RANAI", "Hari_Usia_Ortu": 12864, "Usia_Rata_Ortu_Tahun": 35.2, "Durasi_Pelaporan_Hari": 109, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "PNS", "Cluster": 1, "Cluster_Label": "Klaster 1: Terlambat Sedang (Balita-Anak)"}, {"No_Berkas": "B_069", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "BANDARSYAH", "Hari_Usia_Ortu": 15988, "Usia_Rata_Ortu_Tahun": 43.8, "Durasi_Pelaporan_Hari": 431, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "TUKANG BATU", "Cluster": 1, "Cluster_Label": "Klaster 1: Terlambat Sedang (Balita-Anak)"}, {"No_Berkas": "B_070", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "RANAI KOTA", "Hari_Usia_Ortu": 11437, "Usia_Rata_Ortu_Tahun": 31.3, "Durasi_Pelaporan_Hari": 20717, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 0, "Cluster_Label": "Klaster 2: Terlambat Historis (Dewasa SPTJM)"}, {"No_Berkas": "B_071", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "RANAI", "Hari_Usia_Ortu": 9486, "Usia_Rata_Ortu_Tahun": 26.0, "Durasi_Pelaporan_Hari": 392, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "NELAYAN", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_072", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "RANAI DARAT", "Hari_Usia_Ortu": 11437, "Usia_Rata_Ortu_Tahun": 31.3, "Durasi_Pelaporan_Hari": 14559, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 0, "Cluster_Label": "Klaster 2: Terlambat Historis (Dewasa SPTJM)"}, {"No_Berkas": "B_073", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "RANAI KOTA", "Hari_Usia_Ortu": 11437, "Usia_Rata_Ortu_Tahun": 31.3, "Durasi_Pelaporan_Hari": 20639, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 0, "Cluster_Label": "Klaster 2: Terlambat Historis (Dewasa SPTJM)"}, {"No_Berkas": "B_074", "Kecamatan": "BUNGURAN BATUBI", "Desa_Kelurahan": "GUNUNG PUTRI", "Hari_Usia_Ortu": 11437, "Usia_Rata_Ortu_Tahun": 31.3, "Durasi_Pelaporan_Hari": 25035, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 0, "Cluster_Label": "Klaster 2: Terlambat Historis (Dewasa SPTJM)"}, {"No_Berkas": "B_075", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "RANAI KOTA", "Hari_Usia_Ortu": 11437, "Usia_Rata_Ortu_Tahun": 31.3, "Durasi_Pelaporan_Hari": 15047, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 0, "Cluster_Label": "Klaster 2: Terlambat Historis (Dewasa SPTJM)"}, {"No_Berkas": "B_076", "Kecamatan": "BUNGURAN UTARA", "Desa_Kelurahan": "KELARIK", "Hari_Usia_Ortu": 11437, "Usia_Rata_Ortu_Tahun": 31.3, "Durasi_Pelaporan_Hari": 18223, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 0, "Cluster_Label": "Klaster 2: Terlambat Historis (Dewasa SPTJM)"}, {"No_Berkas": "B_077", "Kecamatan": "BUNGURAN UTARA", "Desa_Kelurahan": "KELARIK", "Hari_Usia_Ortu": 11437, "Usia_Rata_Ortu_Tahun": 31.3, "Durasi_Pelaporan_Hari": 17991, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 0, "Cluster_Label": "Klaster 2: Terlambat Historis (Dewasa SPTJM)"}, {"No_Berkas": "B_078", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "BATUBI", "Hari_Usia_Ortu": 8634, "Usia_Rata_Ortu_Tahun": 23.6, "Durasi_Pelaporan_Hari": 367, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "HONORER", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_079", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "BATU HITAM", "Hari_Usia_Ortu": 11543, "Usia_Rata_Ortu_Tahun": 31.6, "Durasi_Pelaporan_Hari": 1738, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_080", "Kecamatan": "BUNGURAN UTARA", "Desa_Kelurahan": "KELARIK", "Hari_Usia_Ortu": 11437, "Usia_Rata_Ortu_Tahun": 31.3, "Durasi_Pelaporan_Hari": 18977, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 0, "Cluster_Label": "Klaster 2: Terlambat Historis (Dewasa SPTJM)"}, {"No_Berkas": "B_081", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "RANAI KOTA", "Hari_Usia_Ortu": 12323, "Usia_Rata_Ortu_Tahun": 33.7, "Durasi_Pelaporan_Hari": 53, "Status_Kepatuhan": "LU", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 1, "Cluster_Label": "Klaster 1: Terlambat Sedang (Balita-Anak)"}, {"No_Berkas": "B_082", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "RANAI KOTA", "Hari_Usia_Ortu": 9014, "Usia_Rata_Ortu_Tahun": 24.7, "Durasi_Pelaporan_Hari": 56, "Status_Kepatuhan": "LU", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_083", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "RANAI KOTA", "Hari_Usia_Ortu": 13859, "Usia_Rata_Ortu_Tahun": 37.9, "Durasi_Pelaporan_Hari": 220, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "WIRASWASTA", "Cluster": 1, "Cluster_Label": "Klaster 1: Terlambat Sedang (Balita-Anak)"}, {"No_Berkas": "B_084", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "RANAI KOTA", "Hari_Usia_Ortu": 7517, "Usia_Rata_Ortu_Tahun": 20.6, "Durasi_Pelaporan_Hari": 217, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "SWASTA", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_085", "Kecamatan": "BUNGURAN TIMUR LAUT", "Desa_Kelurahan": "KELANGA", "Hari_Usia_Ortu": 10626, "Usia_Rata_Ortu_Tahun": 29.1, "Durasi_Pelaporan_Hari": 21508, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 0, "Cluster_Label": "Klaster 2: Terlambat Historis (Dewasa SPTJM)"}, {"No_Berkas": "B_086", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "RANAI KOTA", "Hari_Usia_Ortu": 15995, "Usia_Rata_Ortu_Tahun": 43.8, "Durasi_Pelaporan_Hari": 134, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "KARYAWAN SWASTA", "Cluster": 1, "Cluster_Label": "Klaster 1: Terlambat Sedang (Balita-Anak)"}, {"No_Berkas": "B_087", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "RANAI KOTA", "Hari_Usia_Ortu": 8464, "Usia_Rata_Ortu_Tahun": 23.2, "Durasi_Pelaporan_Hari": 137, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_088", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "SUNGAI ULU", "Hari_Usia_Ortu": 13241, "Usia_Rata_Ortu_Tahun": 36.3, "Durasi_Pelaporan_Hari": 1435, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "SWASTA", "Cluster": 1, "Cluster_Label": "Klaster 1: Terlambat Sedang (Balita-Anak)"}, {"No_Berkas": "B_089", "Kecamatan": "MIDAI", "Desa_Kelurahan": "MIDAI", "Hari_Usia_Ortu": 10845, "Usia_Rata_Ortu_Tahun": 29.7, "Durasi_Pelaporan_Hari": 16635, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 0, "Cluster_Label": "Klaster 2: Terlambat Historis (Dewasa SPTJM)"}, {"No_Berkas": "B_090", "Kecamatan": "BUNGURAN TIMUR LAUT", "Desa_Kelurahan": "CERUK", "Hari_Usia_Ortu": 11166, "Usia_Rata_Ortu_Tahun": 30.6, "Durasi_Pelaporan_Hari": 73, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "WIRASWASTA", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_091", "Kecamatan": "BUNGURAN UTARA", "Desa_Kelurahan": "KELARIK BARAT", "Hari_Usia_Ortu": 12917, "Usia_Rata_Ortu_Tahun": 35.4, "Durasi_Pelaporan_Hari": 114, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "BURUH HARIAN LEPAS", "Cluster": 1, "Cluster_Label": "Klaster 1: Terlambat Sedang (Balita-Anak)"}, {"No_Berkas": "B_092", "Kecamatan": "BUNGURAN TIMUR LAUT", "Desa_Kelurahan": "TANJUNG", "Hari_Usia_Ortu": 10094, "Usia_Rata_Ortu_Tahun": 27.6, "Durasi_Pelaporan_Hari": 292, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "NELAYAN", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_093", "Kecamatan": "BUNGURAN TIMUR LAUT", "Desa_Kelurahan": "SELEMUT", "Hari_Usia_Ortu": 11437, "Usia_Rata_Ortu_Tahun": 31.3, "Durasi_Pelaporan_Hari": 14768, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 0, "Cluster_Label": "Klaster 2: Terlambat Historis (Dewasa SPTJM)"}, {"No_Berkas": "B_094", "Kecamatan": "SERASAN TIMUR", "Desa_Kelurahan": "BATU AMPAR", "Hari_Usia_Ortu": 9822, "Usia_Rata_Ortu_Tahun": 26.9, "Durasi_Pelaporan_Hari": 367, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "NELAYAN", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_095", "Kecamatan": "SERASAN TIMUR", "Desa_Kelurahan": "AIR RINGAU", "Hari_Usia_Ortu": 17400, "Usia_Rata_Ortu_Tahun": 47.6, "Durasi_Pelaporan_Hari": 367, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "NELAYAN", "Cluster": 1, "Cluster_Label": "Klaster 1: Terlambat Sedang (Balita-Anak)"}, {"No_Berkas": "B_096", "Kecamatan": "SERASAN TIMUR", "Desa_Kelurahan": "BATU AMPAR", "Hari_Usia_Ortu": 8994, "Usia_Rata_Ortu_Tahun": 24.6, "Durasi_Pelaporan_Hari": 364, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "NELAYAN / PERIKANAN", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_097", "Kecamatan": "SERASAN TIMUR", "Desa_Kelurahan": "ARUNG AYAM", "Hari_Usia_Ortu": 9498, "Usia_Rata_Ortu_Tahun": 26.0, "Durasi_Pelaporan_Hari": 365, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "PETANI", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_098", "Kecamatan": "SERASAN TIMUR", "Desa_Kelurahan": "AIR RINGAU", "Hari_Usia_Ortu": 13412, "Usia_Rata_Ortu_Tahun": 36.7, "Durasi_Pelaporan_Hari": 367, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "NELAYAN", "Cluster": 1, "Cluster_Label": "Klaster 1: Terlambat Sedang (Balita-Anak)"}, {"No_Berkas": "B_099", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "SEPEMPANG", "Hari_Usia_Ortu": 11319, "Usia_Rata_Ortu_Tahun": 31.0, "Durasi_Pelaporan_Hari": 13952, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "PENSIUNAN", "Cluster": 0, "Cluster_Label": "Klaster 2: Terlambat Historis (Dewasa SPTJM)"}, {"No_Berkas": "B_100", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "SEPEMPANG", "Hari_Usia_Ortu": 12808, "Usia_Rata_Ortu_Tahun": 35.1, "Durasi_Pelaporan_Hari": 9674, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 1, "Cluster_Label": "Klaster 1: Terlambat Sedang (Balita-Anak)"}, {"No_Berkas": "B_101", "Kecamatan": "BUNGURAN BARAT", "Desa_Kelurahan": "TANJUNG SEBAUK", "Hari_Usia_Ortu": 9956, "Usia_Rata_Ortu_Tahun": 27.3, "Durasi_Pelaporan_Hari": 829, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_102", "Kecamatan": "BUNGURAN SELATAN", "Desa_Kelurahan": "CEMAGA", "Hari_Usia_Ortu": 9685, "Usia_Rata_Ortu_Tahun": 26.5, "Durasi_Pelaporan_Hari": 906, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "WIRASWASTA", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_103", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "RANAI", "Hari_Usia_Ortu": 15934, "Usia_Rata_Ortu_Tahun": 43.6, "Durasi_Pelaporan_Hari": 13437, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "PETANI", "Cluster": 1, "Cluster_Label": "Klaster 1: Terlambat Sedang (Balita-Anak)"}, {"No_Berkas": "B_104", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "BANDARSYAH", "Hari_Usia_Ortu": 13508, "Usia_Rata_Ortu_Tahun": 37.0, "Durasi_Pelaporan_Hari": 70, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "NELAYAN", "Cluster": 1, "Cluster_Label": "Klaster 1: Terlambat Sedang (Balita-Anak)"}, {"No_Berkas": "B_105", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "BANDARSYAH", "Hari_Usia_Ortu": 13768, "Usia_Rata_Ortu_Tahun": 37.7, "Durasi_Pelaporan_Hari": 79, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "PNS", "Cluster": 1, "Cluster_Label": "Klaster 1: Terlambat Sedang (Balita-Anak)"}, {"No_Berkas": "B_106", "Kecamatan": "SUBI", "Desa_Kelurahan": "SUBI", "Hari_Usia_Ortu": 16434, "Usia_Rata_Ortu_Tahun": 45.0, "Durasi_Pelaporan_Hari": 920, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "PETANI", "Cluster": 1, "Cluster_Label": "Klaster 1: Terlambat Sedang (Balita-Anak)"}, {"No_Berkas": "B_107", "Kecamatan": "BUNGURAN BATUBI", "Desa_Kelurahan": "GUNUNG PUTRI", "Hari_Usia_Ortu": 7822, "Usia_Rata_Ortu_Tahun": 21.4, "Durasi_Pelaporan_Hari": 393, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "WIRASWASTA", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_108", "Kecamatan": "BUNGURAN BARAT", "Desa_Kelurahan": "BINJAI", "Hari_Usia_Ortu": 15590, "Usia_Rata_Ortu_Tahun": 42.7, "Durasi_Pelaporan_Hari": 63, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 1, "Cluster_Label": "Klaster 1: Terlambat Sedang (Balita-Anak)"}, {"No_Berkas": "B_109", "Kecamatan": "BUNGURAN BARAT", "Desa_Kelurahan": "BINJAI", "Hari_Usia_Ortu": 6242, "Usia_Rata_Ortu_Tahun": 17.1, "Durasi_Pelaporan_Hari": 16264, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 0, "Cluster_Label": "Klaster 2: Terlambat Historis (Dewasa SPTJM)"}, {"No_Berkas": "B_110", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "BANDARSYAH", "Hari_Usia_Ortu": 9580, "Usia_Rata_Ortu_Tahun": 26.2, "Durasi_Pelaporan_Hari": 366, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_111", "Kecamatan": "SERASAN", "Desa_Kelurahan": "BATU BERIAN", "Hari_Usia_Ortu": 7898, "Usia_Rata_Ortu_Tahun": 21.6, "Durasi_Pelaporan_Hari": 893, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "NELAYAN", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_112", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "CERUK", "Hari_Usia_Ortu": 12111, "Usia_Rata_Ortu_Tahun": 33.2, "Durasi_Pelaporan_Hari": 272, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 1, "Cluster_Label": "Klaster 1: Terlambat Sedang (Balita-Anak)"}, {"No_Berkas": "B_113", "Kecamatan": "SUBI", "Desa_Kelurahan": "MELIAH SELATAN", "Hari_Usia_Ortu": 12989, "Usia_Rata_Ortu_Tahun": 35.6, "Durasi_Pelaporan_Hari": 109, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "KARYAWAN HONORER", "Cluster": 1, "Cluster_Label": "Klaster 1: Terlambat Sedang (Balita-Anak)"}, {"No_Berkas": "B_114", "Kecamatan": "SUBI", "Desa_Kelurahan": "SUBI", "Hari_Usia_Ortu": 11424, "Usia_Rata_Ortu_Tahun": 31.3, "Durasi_Pelaporan_Hari": 2193, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_115", "Kecamatan": "PULAU PANJANG", "Desa_Kelurahan": "PULAU PANJANG", "Hari_Usia_Ortu": 8278, "Usia_Rata_Ortu_Tahun": 22.7, "Durasi_Pelaporan_Hari": 10324, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "NELAYAN PERIKANAN", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_116", "Kecamatan": "MIDAI", "Desa_Kelurahan": "SABANG BARAT", "Hari_Usia_Ortu": 11437, "Usia_Rata_Ortu_Tahun": 31.3, "Durasi_Pelaporan_Hari": 22132, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 0, "Cluster_Label": "Klaster 2: Terlambat Historis (Dewasa SPTJM)"}, {"No_Berkas": "B_117", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "SEPEMPANG", "Hari_Usia_Ortu": 11437, "Usia_Rata_Ortu_Tahun": 31.3, "Durasi_Pelaporan_Hari": 19027, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 0, "Cluster_Label": "Klaster 2: Terlambat Historis (Dewasa SPTJM)"}, {"No_Berkas": "B_118", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "RANAI KOTA", "Hari_Usia_Ortu": 13609, "Usia_Rata_Ortu_Tahun": 37.3, "Durasi_Pelaporan_Hari": 186, "Status_Kepatuhan": "LT", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 1, "Cluster_Label": "Klaster 1: Terlambat Sedang (Balita-Anak)"}, {"No_Berkas": "B_119", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "RANAI KOTA", "Hari_Usia_Ortu": 12248, "Usia_Rata_Ortu_Tahun": 33.5, "Durasi_Pelaporan_Hari": 0, "Status_Kepatuhan": "LU", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 1, "Cluster_Label": "Klaster 1: Terlambat Sedang (Balita-Anak)"}, {"No_Berkas": "B_120", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "RANAI KOTA", "Hari_Usia_Ortu": 13901, "Usia_Rata_Ortu_Tahun": 38.1, "Durasi_Pelaporan_Hari": 1, "Status_Kepatuhan": "LU", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 1, "Cluster_Label": "Klaster 1: Terlambat Sedang (Balita-Anak)"}, {"No_Berkas": "B_121", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "RANAI KOTA", "Hari_Usia_Ortu": 10702, "Usia_Rata_Ortu_Tahun": 29.3, "Durasi_Pelaporan_Hari": 2, "Status_Kepatuhan": "LU", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_122", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "SEPEMPANG", "Hari_Usia_Ortu": 12698, "Usia_Rata_Ortu_Tahun": 34.8, "Durasi_Pelaporan_Hari": 1, "Status_Kepatuhan": "LU", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 1, "Cluster_Label": "Klaster 1: Terlambat Sedang (Balita-Anak)"}, {"No_Berkas": "B_123", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "RANAI KOTA", "Hari_Usia_Ortu": 11901, "Usia_Rata_Ortu_Tahun": 32.6, "Durasi_Pelaporan_Hari": 3, "Status_Kepatuhan": "LU", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_124", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "RANAI KOTA", "Hari_Usia_Ortu": 11830, "Usia_Rata_Ortu_Tahun": 32.4, "Durasi_Pelaporan_Hari": 0, "Status_Kepatuhan": "LU", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_125", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "RANAI KOTA", "Hari_Usia_Ortu": 10189, "Usia_Rata_Ortu_Tahun": 27.9, "Durasi_Pelaporan_Hari": 3, "Status_Kepatuhan": "LU", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_126", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "RANAI KOTA", "Hari_Usia_Ortu": 11210, "Usia_Rata_Ortu_Tahun": 30.7, "Durasi_Pelaporan_Hari": 0, "Status_Kepatuhan": "LU", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_127", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "RANAI KOTA", "Hari_Usia_Ortu": 8626, "Usia_Rata_Ortu_Tahun": 23.6, "Durasi_Pelaporan_Hari": 1, "Status_Kepatuhan": "LU", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_128", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "RANAI KOTA", "Hari_Usia_Ortu": 11612, "Usia_Rata_Ortu_Tahun": 31.8, "Durasi_Pelaporan_Hari": 3, "Status_Kepatuhan": "LU", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_129", "Kecamatan": "PULAU LAUT", "Desa_Kelurahan": "AIR PAYANG", "Hari_Usia_Ortu": 13165, "Usia_Rata_Ortu_Tahun": 36.0, "Durasi_Pelaporan_Hari": 1, "Status_Kepatuhan": "LU", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 1, "Cluster_Label": "Klaster 1: Terlambat Sedang (Balita-Anak)"}, {"No_Berkas": "B_130", "Kecamatan": "BUNGURAN TENGAH", "Desa_Kelurahan": "AIR LENGIT", "Hari_Usia_Ortu": 8081, "Usia_Rata_Ortu_Tahun": 22.1, "Durasi_Pelaporan_Hari": 1, "Status_Kepatuhan": "LU", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}, {"No_Berkas": "B_131", "Kecamatan": "BUNGURAN TIMUR", "Desa_Kelurahan": "RANAI KOTA", "Hari_Usia_Ortu": 10212, "Usia_Rata_Ortu_Tahun": 28.0, "Durasi_Pelaporan_Hari": 7, "Status_Kepatuhan": "LU", "Pekerjaan_Ayah": "TANPA KETERANGAN (TEMPLATE RSUD)", "Cluster": 2, "Cluster_Label": "Klaster 0: Tepat Waktu (Lahir Umum)"}];
+const centroidsRaw = [{"cluster": 0, "cluster_label": "Klaster 2: Terlambat Historis (Dewasa SPTJM)", "centroid_x": 11140.14285714286, "centroid_y": 17774.82857142857, "usia_tahun": 30.50004889019263, "durasi_tahun": 48.664828395423875}, {"cluster": 1, "cluster_label": "Klaster 1: Terlambat Sedang (Balita-Anak)", "centroid_x": 14082.025, "centroid_y": 1481.899999999999, "usia_tahun": 38.55448323066393, "durasi_tahun": 4.057221081451058}, {"cluster": 2, "cluster_label": "Klaster 0: Tepat Waktu (Lahir Umum)", "centroid_x": 9982.92857142857, "centroid_y": 892.0, "usia_tahun": 27.33176884716925, "durasi_tahun": 2.4421629021218343}];
+
+const clusterNames = [
+  'Klaster 0: Tepat Waktu (Lahir Umum)',
+  'Klaster 1: Terlambat Sedang (Balita-Anak)',
+  'Klaster 2: Terlambat Historis (Dewasa SPTJM)'
+];
+const colors = ['#27ae60', '#2980b9', '#c0392b'];
+
+// 1. Data Points Traces
+const traces = clusterNames.map((cName, idx) => {
+  const filtered = dataRaw.filter(d => d.Cluster_Label === cName);
+  return {
+    x: filtered.map(d => d.Hari_Usia_Ortu),
+    y: filtered.map(d => d.Durasi_Pelaporan_Hari),
+    mode: 'markers',
+    type: 'scatter',
+    name: cName,
+    marker: { size: 10, color: colors[idx], opacity: 0.82, line: { color: '#1a252f', width: 1 } },
+    text: filtered.map(d => `<b>Berkas:</b> ${d.No_Berkas}<br><b>Kecamatan:</b> ${d.Kecamatan}<br><b>Desa:</b> ${d.Desa_Kelurahan}<br><b>Usia Ortu:</b> ${d.Usia_Rata_Ortu_Tahun} Tahun (${d.Hari_Usia_Ortu} Hari)<br><b>Keterlambatan:</b> ${d.Durasi_Pelaporan_Hari} Hari (${(d.Durasi_Pelaporan_Hari/365.25).toFixed(1)} Thn)<br><b>Status:</b> ${d.Status_Kepatuhan}<br><b>Profesi:</b> ${d.Pekerjaan_Ayah}`),
+    hoverinfo: 'text'
+  };
+});
+
+// 2. Centroid Star Markers Trace
+const centroidTrace = {
+  x: centroidsRaw.map(c => c.centroid_x),
+  y: centroidsRaw.map(c => c.centroid_y),
+  mode: 'markers',
+  type: 'scatter',
+  name: 'Titik Pusat (Centroid ⭐)',
+  marker: {
+    symbol: 'star',
+    size: 22,
+    color: '#f1c40f',
+    line: { color: '#000000', width: 2 }
+  },
+  text: centroidsRaw.map(c => `<b>⭐ CENTROID ${c.cluster_label}</b><br>Usia Ortu: ${c.usia_tahun.toFixed(1)} Tahun (${c.centroid_x.toFixed(0)} Hari)<br>Rata-rata Keterlambatan: ${c.durasi_tahun.toFixed(1)} Tahun (${c.centroid_y.toFixed(0)} Hari)`),
+  hoverinfo: 'text'
+};
+traces.push(centroidTrace);
+
+const layout = {
+  title: { 
+    text: 'Analisis Klaster Sosio-Ekonomi: Sumbu X (Usia Ortu Hari) vs Sumbu Y (Keterlambatan Hari)', 
+    font: { size: 15, weight: 'bold', color: '#1a365d' } 
+  },
+  xaxis: { 
+    title: 'Sumbu X: Usia Orang Tua Saat Anak Lahir (Hari Kalender)', 
+    gridcolor: '#e9ecef',
+    zeroline: true,
+    zerolinecolor: '#95a5a6'
+  },
+  yaxis: { 
+    title: 'Sumbu Y: Durasi Keterlambatan Pelaporan (Hari Kalender)', 
+    gridcolor: '#e9ecef',
+    zeroline: true,
+    zerolinecolor: '#95a5a6'
+  },
+  hovermode: 'closest',
+  plot_bgcolor: '#ffffff',
+  paper_bgcolor: '#ffffff',
+  legend: { orientation: 'h', y: -0.18, x: 0.05 },
+  
+  // GARIS ELIPS BATAS KLASTER SOSIO-EKONOMI
+  shapes: [
+    // Elips Klaster 0 (Tepat Waktu & Balita Dini)
+    {
+      type: 'circle',
+      xref: 'x', yref: 'y',
+      x0: 7000, y0: -1000,
+      x1: 12500, y1: 11500,
+      line: { color: '#27ae60', width: 2, dash: 'dash' },
+      fillcolor: 'rgba(39, 174, 96, 0.05)'
+    },
+    // Elips Klaster 1 (Terlambat Sedang Balita-Anak)
+    {
+      type: 'circle',
+      xref: 'x', yref: 'y',
+      x0: 11800, y0: -1000,
+      x1: 17800, y1: 14500,
+      line: { color: '#2980b9', width: 2, dash: 'dash' },
+      fillcolor: 'rgba(41, 128, 185, 0.05)'
+    },
+    // Elips Klaster 2 (Terlambat Historis Dewasa SPTJM)
+    {
+      type: 'circle',
+      xref: 'x', yref: 'y',
+      x0: 5500, y0: 11000,
+      x1: 14000, y1: 32000,
+      line: { color: '#c0392b', width: 2, dash: 'dash' },
+      fillcolor: 'rgba(192, 57, 43, 0.05)'
+    }
+  ],
+
+  // ANOTASI PANAH KARAKTERISTIK SOSIO-EKONOMI
+  annotations: [
+    {
+      x: 9983, y: 892,
+      xref: 'x', yref: 'y',
+      text: '<b>Wiraswasta & Nelayan Muda</b><br>(Pelaporan Tertib LU/Balita Dini)',
+      showarrow: true,
+      arrowhead: 2,
+      arrowsize: 1,
+      arrowwidth: 1.5,
+      arrowcolor: '#27ae60',
+      ax: -70, ay: -50,
+      bordercolor: '#27ae60',
+      borderwidth: 1.5,
+      borderpad: 4,
+      bgcolor: '#eafaf1',
+      font: { size: 11, color: '#196f3d' }
+    },
+    {
+      x: 14082, y: 1482,
+      xref: 'x', yref: 'y',
+      text: '<b>PNS, TNI & Petani</b><br>(Menunda Menjelang Usia Sekolah)',
+      showarrow: true,
+      arrowhead: 2,
+      arrowsize: 1,
+      arrowwidth: 1.5,
+      arrowcolor: '#2980b9',
+      ax: 80, ay: -50,
+      bordercolor: '#2980b9',
+      borderwidth: 1.5,
+      borderpad: 4,
+      bgcolor: '#ebf5fb',
+      font: { size: 11, color: '#1a5276' }
+    },
+    {
+      x: 11140, y: 17775,
+      xref: 'x', yref: 'y',
+      text: '<b>Warga Dewasa/Lansia Pulau 3T</b><br>(100% Instrumen SPTJM)',
+      showarrow: true,
+      arrowhead: 2,
+      arrowsize: 1,
+      arrowwidth: 1.5,
+      arrowcolor: '#c0392b',
+      ax: 90, ay: 30,
+      bordercolor: '#c0392b',
+      borderwidth: 1.5,
+      borderpad: 4,
+      bgcolor: '#fdedec',
+      font: { size: 11, color: '#922b21' }
+    }
+  ]
+};
+
+Plotly.newPlot('plotDiv', traces, layout);
+</script>
+</body>
+</html>

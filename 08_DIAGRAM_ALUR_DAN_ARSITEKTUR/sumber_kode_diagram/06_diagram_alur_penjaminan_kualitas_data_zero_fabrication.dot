@@ -1,0 +1,46 @@
+digraph Data_Quality_Assurance {
+    rankdir=TB;
+    fontname="Arial";
+    dpi=300;
+    node [shape=box, style="filled,rounded", fontname="Arial", fontsize=10, margin="0.2,0.15"];
+    edge [color="#2B6CB0", penwidth=1.8, arrowhead=vee];
+
+    subgraph cluster_qa {
+        style="filled,rounded";
+        fillcolor="#F7FAFC";
+        color="#CBD5E0";
+        label="AUDIT PENJAMINAN KUALITAS DATA & KEPATUHAN ZERO DATA FABRICATION";
+        fontname="Arial Bold";
+        fontsize=13;
+        fontcolor="#1A365D";
+
+        RAW [label="SUMBER DATA PRIMER OPERASIONAL\n• 131 Folder Berkas Pindaian Fisik Resmi Loket Disdukcapil Natuna\n• 262 Citra Dokumen (Formulir F-2.01 & Surat Medis SKL / SPTJM)\n• 131 Berkas Permohonan Akta Kelahiran Individu", fillcolor="#EBF8FF", color="#3182CE"];
+        TRANS [label="TRANSKRIPSI DIGITAL FAKTUAL AWAL\n• Konversi OCR & Audit Manual Ganda ke Format Excel\n• Mempertahankan Integritas Dokumen Asli Tanpa Modifikasi Awal", fillcolor="#E6FFFA", color="#319795"];
+        
+        subgraph cluster_audit {
+            style="filled,rounded";
+            fillcolor="#FFF5F5";
+            color="#FEB2B2";
+            label="Pemeriksaan Anomali & Kualitas Data (Zero Fabrication)";
+            fontname="Arial Bold";
+            fontsize=10;
+            fontcolor="#9B2C2C";
+
+            A1 [label="Audit Missing Values Kolom Pekerjaan (48 Berkas RSUD)\n• Ketiadaan isian diakui secara jujur\n• Ditetapkan kategori formal: 'Tanpa Keterangan (Template RSUD)'\n• Menolak keras pembuatan data sintetik / fabrikasi", fillcolor="#FFFFFF", color="#E53E3E"];
+            A2 [label="Koreksi Typo Slip Loket F044\n• Tertulis Lahir: 2025-05-18, Lapor: 2024-05-18 (Typo Tahun Lapor -365 hari)\n• Verifikasi Faktual Tanggal Lapor: 2025-05-18 (Durasi 0 hari, Lahir Umum)", fillcolor="#FFFFFF", color="#E53E3E"];
+            A3 [label="Koreksi Typo Slip Loket F0124\n• Tertulis Lahir: 2026-07-06 (Mendahului Masa Pelayanan 2025)\n• Dikoreksi Tanggal Lahir: 2025-07-06, Lapor: 2025-07-06 (Durasi 0 hari)", fillcolor="#FFFFFF", color="#E53E3E"];
+        }
+
+        SYNC [label="VALIDASI KOHORT PELAYANAN TAHUN 2025\n• Seluruh berkas (100%) merupakan kohort resmi Tahun Pelaporan 2025\n• Distribusi Tahun Lapor: {2025: 131 berkas} pada hari kerja operasional dinas", fillcolor="#FAF5FF", color="#805AD5"];
+        PII  [label="ELIMINASI PII SESUAI UU NO. 27/2022 (UU PDP)\n• Penghapusan NIK Anak, NIK Ayah, NIK Ibu, Nomor KK, dan Nama Lengkap\n• Penghapusan Alamat Rumah Detail RT/RW\n• Pemberian Kode Identitas Pseudonim B_001 s.d. B_131", fillcolor="#FFFAF0", color="#DD6B20"];
+        READY [label="DATASET BERSIH SIAP MINING (XLSX & CSV)\n• Terverifikasi Yuridis Tier 1 & Tier 2 Sesuai Permendagri No. 108/2019\n• Siap Diproses ke Tahap Rekayasa Fitur dan Pemodelan K-Means", fillcolor="#2F855A", fontcolor="#FFFFFF", style="filled"];
+
+        RAW -> TRANS -> A1;
+        TRANS -> A2;
+        TRANS -> A3;
+        A1 -> SYNC;
+        A2 -> SYNC;
+        A3 -> SYNC;
+        SYNC -> PII -> READY;
+    }
+}

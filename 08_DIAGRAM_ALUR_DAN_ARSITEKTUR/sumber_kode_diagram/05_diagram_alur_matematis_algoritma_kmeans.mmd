@@ -1,0 +1,10 @@
+flowchart TD
+    INP["Matriks Data Masukan X (N x D)"] --> ZSC["1. Standardisasi Fitur Z-Score: z = (x - mean) / std"]
+    ZSC --> INIT["2. Inisialisasi K=3 Centroid Awal (k-means++, random_state=42)"]
+    INIT --> DIST["3. Hitung Matriks Jarak Euclidean d(x_i, mu_k)"]
+    DIST --> ASSN["4. Alokasi Keanggotaan Klaster: argmin d(x_i, mu_k)"]
+    ASSN --> UPDT["5. Pembaruan Titik Pusat Centroid: mu = mean(z_i)"]
+    UPDT --> CONV{"Konvergen? (Pergeseran < 10^-4)"}
+    CONV -- Tidak --> DIST
+    CONV -- Ya --> METR["Validasi Metrik: Elbow, Silhouette, Davies-Bouldin"]
+    METR --> OUT["Profiling Karakteristik Klaster & Integrasi Dashboard"]

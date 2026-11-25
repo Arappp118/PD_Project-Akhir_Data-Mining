@@ -1,0 +1,29 @@
+digraph Report_Structure {
+    rankdir=TB;
+    fontname="Arial";
+    dpi=300;
+    node [shape=box, style="filled,rounded", fontname="Arial", fontsize=10, margin="0.2,0.15"];
+    edge [color="#2B6CB0", penwidth=1.8, arrowhead=vee];
+
+    subgraph cluster_rtm {
+        style="filled,rounded";
+        fillcolor="#F7FAFC";
+        color="#CBD5E0";
+        label="STRUKTUR DAN TATA KELOLA NASKAH LAPORAN AKHIR (STANDAR AKADEMIS RTM)";
+        fontname="Arial Bold";
+        fontsize=13;
+        fontcolor="#1A365D";
+
+        COV [label="HALAMAN JUDUL (COVER RESMI)\n• Judul Lengkap Penelitian Kependudukan\n• Logo Resmi Universitas Maritim Raja Ali Haji (UMRAH)\n• Nama & NIM Tim Peneliti (Ketua & Anggota)\n• Prodi Teknik Informatika, FTKK UMRAH 2026", fillcolor="#EBF8FF", color="#3182CE"];
+        PRE [label="HALAMAN AWAL (PRELIMINARIES - ROMAWI i, ii, iii...)\n• Kata Pengantar (Apresiasi Rektor, Dosen, Reviewer, Mitra Disdukcapil)\n• Ringkasan Eksekutif / Abstrak & Kata Kunci Resmi\n• Daftar Isi, Daftar Tabel, dan Daftar Gambar", fillcolor="#E6FFFA", color="#319795"];
+        B1  [label="BAB I: BUSINESS UNDERSTANDING\n• I.1 Latar Belakang Mitra Pemilik Data (Disdukcapil Natuna)\n• I.2 Permasalahan Nyata (UU No. 24/2013 Batas 60 Hari, Disparitas 3T)\n• I.3 Tujuan Data Mining (Spasial, Sosio-Ekonomi, Dashboard)\n• I.4 Lini Waktu Pelaksanaan & Gantt Chart 8 Minggu (PIC Tim)", fillcolor="#FAF5FF", color="#805AD5"];
+        B2  [label="BAB II: DATA UNDERSTANDING\n• II.1 Teknik Pengumpulan Data (131 Folder Pindaian, 131 Berkas)\n• II.2 Jenis Data (Nominal, Ordinal, Interval, Rasio & Kamus Data)\n• II.3 Exploratory Data Analysis (8 Plot EDA Resolusi Tinggi)", fillcolor="#FFFAF0", color="#DD6B20"];
+        B3  [label="BAB III: PREPROCESS\n• III.1 Penyelesaian Missing Value (Protokol Zero Fabrication)\n• III.2 Data Selection & Eliminasi PII (Kepatuhan UU No. 27/2022 PDP)\n• III.3 Data Transformation (Standardisasi ISO & Validasi Typo 2025)\n• III.4 Feature Engineering (Durasi Hari, Status LU/LT, Usia Ortu)", fillcolor="#FFF5F5", color="#E53E3E"];
+        B4  [label="BAB IV: MODEL\n• IV.1 Teori Dasar K-Means Clustering (WCSS / Inersia)\n• IV.2 Detail Perhitungan Matematis Manual Langkah demi Langkah\n• IV.3 Model 1: Spasial Wilayah 16 Kecamatan (K=3, Centroid & Peta)\n• IV.4 Model 2: Sosio-Ekonomi Pemohon Individu (K=3)", fillcolor="#F0FFF4", color="#38A169"];
+        B5  [label="BAB V: EVALUASI\n• V.1 Metode Evaluasi Elbow (Within-Cluster Sum of Squares)\n• V.2 Silhouette Coefficient (Spasial: 0.6410, Sosio: 0.5533)\n• V.3 Davies-Bouldin Index (Spasial: 0.4698, Sosio: 0.5905)\n• V.4 Tabel Validasi Hasil Evaluasi Kedua Model\n• V.5 Profiling Karakteristik dan Karakterisasi Klaster", fillcolor="#EBF8FF", color="#3182CE"];
+        B6  [label="BAB VI: PENERAPAN\n• VI.1 Desain Implementasi Purwarupa Dashboard Web (Leaflet & Plotly)\n• VI.2 Kesimpulan Komprehensif Penelitian\n• VI.3 Rekomendasi Kebijakan Disdukcapil (Kapal Keliling & SPTJM)", fillcolor="#E6FFFA", color="#319795"];
+        POS [label="BAGIAN AKHIR\n• DAFTAR PUSTAKA (Format Standar Akademis APA)\n• LAMPIRAN 1: Cuplikan Data Mentah Terdigitalisasi (Tersamar PII)\n• LAMPIRAN 2: Dokumentasi Kegiatan, Lokasi Mitra & Reviewer\n• LAMPIRAN 3: Tangkapan Layar Program & Dashboard Interaktif\n• LAMPIRAN 4: Log Eksekusi Pipeline Otomasi Python", fillcolor="#EDF2F7", color="#4A5568"];
+
+        COV -> PRE -> B1 -> B2 -> B3 -> B4 -> B5 -> B6 -> POS;
+    }
+}

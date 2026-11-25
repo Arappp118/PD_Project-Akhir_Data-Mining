@@ -1,0 +1,151 @@
+digraph Data_Flow_Pipeline {
+    rankdir=TB;
+    fontname="Arial";
+    dpi=300;
+    compound=true;
+    node [shape=box, style="filled,rounded", fontname="Arial", fontsize=10, margin="0.2,0.14"];
+    edge [color="#2B6CB0", penwidth=1.8, arrowhead=vee];
+
+    subgraph cluster_header {
+        style="filled,rounded";
+        fillcolor="#F7FAFC";
+        color="#CBD5E0";
+        label="DIAGRAM ALUR DATA ANTAR-SKRIP PYTHON (END-TO-END PIPELINE)";
+        fontname="Arial Bold";
+        fontsize=13;
+        fontcolor="#1A365D";
+
+        subgraph cluster_dataprep {
+            style="filled,rounded";
+            fillcolor="#F0F9FF";
+            color="#BAE6FD";
+            label="Tahap 1 & 2: Data Preparation";
+            fontname="Arial Bold";
+            fontsize=11;
+            fontcolor="#0369A1";
+
+            A [label="Data Mentah Transkripsi
+(Excel & CSV 131 Berkas)", fillcolor="#FDBA74", color="#EA580C", shape=folder, style="filled"];
+            B [label="pembersihan_data_dan_
+validasi_kronologis.py", fillcolor="#BAE6FD", color="#0284C7"];
+            C [label="Data_Bersih_Lengkap_Imputed.xlsx / .csv", fillcolor="#E0F2FE", color="#0369A1"];
+            D [label="data_gabungan_transkripsi_final.json", fillcolor="#E0F2FE", color="#0369A1"];
+            E [label="rekayasa_fitur_dan_
+reduksi_dimensi.py", fillcolor="#BAE6FD", color="#0284C7"];
+            F [label="Dataset_Feature_Engineered_PD_NTN.xlsx / .csv
+(131 Baris Fitur Individu)", fillcolor="#E0F2FE", color="#0369A1"];
+            G [label="Dataset_Agregasi_Spasial_16_Kecamatan.xlsx / .csv
+(16 Baris Agregasi Wilayah)", fillcolor="#E0F2FE", color="#0369A1"];
+
+            A -> B;
+            B -> C;
+            B -> D;
+            C -> E;
+            E -> F;
+            E -> G;
+        }
+
+        subgraph cluster_modeling {
+            style="filled,rounded";
+            fillcolor="#FAF5FF";
+            color="#E9D5FF";
+            label="Tahap 3 & 4: Modeling Spasial & Sosio-Ekonomi Individu";
+            fontname="Arial Bold";
+            fontsize=11;
+            fontcolor="#6B21A8";
+
+            H [label="kmeans_model_spasial_wilayah.py", fillcolor="#DDD6FE", color="#7C3AED"];
+            I [label="Hasil_Clustering_Kecamatan_Natuna.xlsx / .csv", fillcolor="#F3E8FF", color="#6B21A8"];
+            J [label="peta_geospatial_klaster_natuna.png", fillcolor="#FEF08A", color="#CA8A04"];
+            K [label="visualisasi_cluster_kecamatan.png", fillcolor="#FEF08A", color="#CA8A04"];
+            L [label="evaluasi_elbow_silhouette.png", fillcolor="#FEF08A", color="#CA8A04"];
+
+            M [label="pemodelan_kmeans_sosioekonomi_
+dan_dashboard.py", fillcolor="#DDD6FE", color="#7C3AED"];
+            N [label="Hasil_Clustering_Sosial_Ekonomi.xlsx / .csv", fillcolor="#F3E8FF", color="#6B21A8"];
+            O [label="scatter_model_sosioekonomi_
+individu.png", fillcolor="#FEF08A", color="#CA8A04"];
+
+            G -> H;
+            H -> I;
+            H -> J;
+            H -> K;
+            H -> L;
+
+            F -> M;
+            M -> N;
+            M -> O;
+        }
+
+        subgraph cluster_eda {
+            style="filled,rounded";
+            fillcolor="#FFFBEB";
+            color="#FDE68A";
+            label="Tahap 5: Data Understanding (EDA)";
+            fontname="Arial Bold";
+            fontsize=11;
+            fontcolor="#92400E";
+
+            P [label="analisis_eksplorasi_data_
+dan_kualitas_eda.py", fillcolor="#FDE68A", color="#D97706"];
+            Q [label="8 Visualisasi EDA (300 DPI PNG)
+(Missing, Typo, Bimodal, Spasial, Tren,
+Boxplot, Scatter, Heatmap Korelasi)", fillcolor="#FEF08A", color="#CA8A04"];
+
+            P -> Q;
+        }
+
+        subgraph cluster_deploy {
+            style="filled,rounded";
+            fillcolor="#F0FDF4";
+            color="#BBF7D0";
+            label="Tahap 6, 7 & 8: Deployment, Reporting & Packaging";
+            fontname="Arial Bold";
+            fontsize=11;
+            fontcolor="#166534";
+
+            R [label="generate_dashboard.py", fillcolor="#BBF7D0", color="#16A34A"];
+            S [label="dashboard_interaktif_kmeans_dosen.html", fillcolor="#DCFCE7", color="#15803D"];
+
+            T [label="build_final_reports.py", fillcolor="#BBF7D0", color="#16A34A"];
+            U [label="LAPORAN_AKHIR_PENAMBANGAN_DATA_PD_NTN25.docx", fillcolor="#DCFCE7", color="#15803D"];
+            V [label="FinPD_2401020121.pdf (33 Halaman)", fillcolor="#DCFCE7", color="#15803D"];
+
+            W [label="paketkan_berkas_google_form.py", fillcolor="#BBF7D0", color="#16A34A"];
+            X [label="BERKAS SUBMISI GOOGLE FORM:
+• Mentah_2401020121.7z (XLSX + CSV)
+• SiapMining_2401020121.7z (XLSX + CSV)
+• FinPD_2401020121.pdf", fillcolor="#15803D", fontcolor="#FFFFFF", shape=note, style="filled"];
+
+            R -> S;
+            T -> U;
+            T -> V;
+            W -> X;
+        }
+
+        ORCH [label="jalankan_seluruh_tahapan_pipeline.py
+(Master Orchestrator - Otomasi Eksekusi 1 s.d. 8/9)", fillcolor="#1E3A8A", fontcolor="#FFFFFF", shape=component, style="filled"];
+
+        # Dependencies between stages
+        C -> P;
+        F -> P;
+
+        I -> R;
+        N -> R;
+
+        Q -> T;
+        J -> T;
+        O -> T;
+
+        V -> W;
+
+        ORCH -> B [style=dashed, color="#1E3A8A", label="Tahap 1"];
+        ORCH -> E [style=dashed, color="#1E3A8A", label="Tahap 2"];
+        ORCH -> H [style=dashed, color="#1E3A8A", label="Tahap 3"];
+        ORCH -> M [style=dashed, color="#1E3A8A", label="Tahap 4"];
+        ORCH -> P [style=dashed, color="#1E3A8A", label="Tahap 5"];
+        ORCH -> R [style=dashed, color="#1E3A8A", label="Tahap 6"];
+        ORCH -> T [style=dashed, color="#1E3A8A", label="Tahap 7"];
+        ORCH -> W [style=dashed, color="#1E3A8A", label="Tahap 8"];
+    }
+}

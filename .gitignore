@@ -1,0 +1,10 @@
+# Data mentah pindaian & transkripsi belum tersamar (PII - UU No. 27/2022)
+02_DATA_UNDERSTANDING/01_arsip_scan_mentah/
+02_DATA_UNDERSTANDING/02_tabulasi_transkripsi/
+
+# File sementara & cache
+.~lock.*
+__pycache__/
+*.pyc
+*.pyo
+

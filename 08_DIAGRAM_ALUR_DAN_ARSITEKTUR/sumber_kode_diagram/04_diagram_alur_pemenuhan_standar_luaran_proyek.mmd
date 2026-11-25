@@ -1,0 +1,13 @@
+flowchart TD
+    subgraph S1 ["Pilar 1: Menjawab Catatan Dosen Reviewer"]
+        C1["Analisis Geospasial 16 Kecamatan<br>Peta Spasial, Segmentasi High-Delay vs High-Compliance 3T"]
+    end
+    subgraph S2 ["Pilar 2: Menjawab Format RTM Matakuliah"]
+        C2["Naskah Lengkap Bab I - Bab VI<br>Word DOCX (Margin 4-3-3-3 cm), PDF FinPD, Hitungan Matematis Manual"]
+    end
+    subgraph S3 ["Pilar 3: Menjawab Submisi Google Form"]
+        C3["Tiga Berkas Siap Unggah<br>Mentah_2401020121.7z, SiapMining_2401020121.7z, FinPD_2401020121.pdf"]
+    end
+    C1 --> ORCH["MASTER PIPELINE ORCHESTRATOR<br>jalankan_seluruh_tahapan_pipeline.py (Exit Code 0)"]
+    C2 --> ORCH
+    C3 --> ORCH

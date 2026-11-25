@@ -1,0 +1,59 @@
+digraph Compliance_Tripartite {
+    rankdir=TB;
+    fontname="Arial";
+    dpi=300;
+    node [shape=box, style="filled,rounded", fontname="Arial", fontsize=10, margin="0.2,0.15"];
+    edge [color="#2B6CB0", penwidth=1.8, arrowhead=vee];
+
+    subgraph cluster_tripartite {
+        style="filled,rounded";
+        fillcolor="#F7FAFC";
+        color="#CBD5E0";
+        label="PEMENUHAN STANDAR LUARAN PROYEK DATA MINING (KEPATUHAN TRIPARTIT)";
+        fontname="Arial Bold";
+        fontsize=13;
+        fontcolor="#1A365D";
+
+        subgraph cluster_c1 {
+            style="filled,rounded";
+            fillcolor="#EBF8FF";
+            color="#3182CE";
+            label="Pilar 1: Menjawab Catatan Dosen Reviewer Proposal";
+            fontname="Arial Bold";
+            fontsize=11;
+            fontcolor="#1A365D";
+
+            C1 [label="Analisis Geospasial Wilayah 16 Kecamatan:\n• Peta Geospasial Spasial Wilayah (Leaflet & Citra 300 DPI)\n• Segmentasi Objektif: High-Compliance, Moderate, High-Delay\n• Pemetaan Solusi Disparitas Pulau Utama vs Pulau 3T", fillcolor="#FFFFFF", color="#3182CE"];
+        }
+
+        subgraph cluster_c2 {
+            style="filled,rounded";
+            fillcolor="#E6FFFA";
+            color="#319795";
+            label="Pilar 2: Menjawab Panduan RTM Matakuliah (Bab I - VI)";
+            fontname="Arial Bold";
+            fontsize=11;
+            fontcolor="#234E52";
+
+            C2 [label="Naskah Akademis Lengkap & Terstandarisasi:\n• Dokumen Word (.docx): A4, Margin 4-3-3-3 cm, Times New Roman 12 pt, Spasi 1.5\n• Dokumen PDF Resmi FinPD_2401020121.pdf (33 Halaman Lengkap)\n• Simulasi Perhitungan Matematis Manual Algoritma K-Means", fillcolor="#FFFFFF", color="#319795"];
+        }
+
+        subgraph cluster_c3 {
+            style="filled,rounded";
+            fillcolor="#FAF5FF";
+            color="#805AD5";
+            label="Pilar 3: Menjawab Format Unggah Google Form";
+            fontname="Arial Bold";
+            fontsize=11;
+            fontcolor="#44337A";
+
+            C3 [label="Tiga Paket Berkas Submisi Resmi:\n• Berkas 1: Mentah_2401020121.7z (Data Mentah Tersamar Privasi XLSX + CSV)\n• Berkas 2: SiapMining_2401020121.7z (Data Bersih & Hasil Klaster XLSX + CSV)\n• Berkas 3: FinPD_2401020121.pdf (Laporan Akhir Terverifikasi)", fillcolor="#FFFFFF", color="#805AD5"];
+        }
+
+        ORCH [label="MASTER ORCHESTRATOR PIPELINE\njalankan_seluruh_tahapan_pipeline.py\n• Eksekusi Satu Pintu Seluruh Skrip (Tahap 1 s.d. 8)\n• Status: Exit Code 0 (Berhasil Tuntas 100%)", fillcolor="#2F855A", fontcolor="#FFFFFF", shape=component, style="filled"];
+
+        C1 -> ORCH;
+        C2 -> ORCH;
+        C3 -> ORCH;
+    }
+}

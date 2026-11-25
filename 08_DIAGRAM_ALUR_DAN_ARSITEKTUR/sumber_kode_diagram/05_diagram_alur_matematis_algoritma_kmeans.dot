@@ -1,0 +1,32 @@
+digraph KMeans_Math_Flow {
+    rankdir=TB;
+    fontname="Arial";
+    dpi=300;
+    node [shape=box, style="filled,rounded", fontname="Arial", fontsize=10, margin="0.2,0.15"];
+    edge [color="#2B6CB0", penwidth=1.8, arrowhead=vee];
+
+    subgraph cluster_km {
+        style="filled,rounded";
+        fillcolor="#F7FAFC";
+        color="#CBD5E0";
+        label="ALUR PERHITUNGAN MATEMATIS ALGORITMA K-MEANS CLUSTERING";
+        fontname="Arial Bold";
+        fontsize=13;
+        fontcolor="#1A365D";
+
+        INP  [label="MATRIKS DATA MASUKAN (X in R^{N x D})\n• Model Spasial: N=16 Kecamatan, D=2 (Persentase LU & Median Durasi Hari)\n• Model Sosio-Ekonomi: N=131 Berkas, D=2 (Usia Ortu & Durasi Pelaporan Hari)", fillcolor="#EBF8FF", color="#3182CE"];
+        ZSC  [label="LANGKAH 1: STANDARDISASI FITUR Z-SCORE\nz_ij = (x_ij - mu_j) / sigma_j\n• Menyamakan skala persentase (0–100%) dengan durasi hari (0–16.000 hari)\n• Menghindari dominasi variabel berentang besar pada jarak Euclidean", fillcolor="#E6FFFA", color="#319795"];
+        INIT [label="LANGKAH 2: INISIALISASI CENTROID AWAL (K=3)\n• Menetapkan titik pusat awal mu_1, mu_2, mu_3 (metode k-means++)\n• Penguncian deterministik menggunakan parameter random_state=42", fillcolor="#FAF5FF", color="#805AD5"];
+        DIST [label="LANGKAH 3: PERHITUNGAN MATRIKS JARAK EUCLIDEAN\nd(x_i, mu_k) = sqrt{ sum_{j=1}^D (z_ij - mu_kj)^2 }\n• Menghitung jarak geometris setiap objek x_i ke seluruh titik centroid mu_k", fillcolor="#FFFAF0", color="#DD6B20"];
+        ASSN [label="LANGKAH 4: ALOKASI KEANGGOTAAN KLASTER\nk* = argmin_{k in {1, ..., K}} d(x_i, mu_k)\n• Menempatkan setiap objek ke dalam klaster dengan jarak Euclidean terdekat", fillcolor="#FFF5F5", color="#E53E3E"];
+        UPDT [label="LANGKAH 5: PEMBARUAN TITIK PUSAT CENTROID\nmu_k^{(t+1)} = (1 / |S_k|) * sum_{x_i in S_k} z_i\n• Menghitung rata-rata aritmatika baru dari seluruh objek anggota klaster", fillcolor="#F0FFF4", color="#38A169"];
+        CONV [label="EVALUASI KONVERGENSI CENTROID\nApakah || mu^{(t+1)} - mu^{(t)} || < epsilon = 10^-4\natau posisi anggota klaster tidak berubah lagi?", shape=diamond, fillcolor="#FEFCBF", color="#D69E2E", fontname="Arial Bold"];
+        METR [label="VALIDASI KUALITAS PARTISI KLASTER\n• Within-Cluster Sum of Squares (WCSS / Inersia)\n• Silhouette Coefficient (Threshold: s > 0.50)\n• Davies-Bouldin Index (Threshold: DBI < 0.80)", fillcolor="#EBF8FF", color="#3182CE"];
+        OUT  [label="LUARAN PROFIL KLASTER OPTIMAL\n• Identifikasi Centroid Skala Asli\n• Penamaan Label Karakteristik (High-Compliance, Moderate, High-Delay)\n• Integrasi ke Dashboard Spasial Leaflet & Laporan Akhir", fillcolor="#2F855A", fontcolor="#FFFFFF", style="filled"];
+
+        INP -> ZSC -> INIT -> DIST -> ASSN -> UPDT -> CONV;
+        CONV -> DIST [label=" Tidak (Ulangi Iterasi)", color="#E53E3E", fontcolor="#E53E3E"];
+        CONV -> METR [label=" Ya (Konvergen)", color="#38A169", fontcolor="#38A169"];
+        METR -> OUT;
+    }
+}
