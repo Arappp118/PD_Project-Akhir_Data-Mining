@@ -2,6 +2,9 @@
 02_DATA_UNDERSTANDING/01_arsip_scan_mentah/
 02_DATA_UNDERSTANDING/02_tabulasi_transkripsi/
 
+# Naskah presentasi internal tim (tidak dipublikasikan ke GitHub)
+NASKAH_PRESENTASI_TIM/
+
 # File sementara & cache
 .~lock.*
 __pycache__/
